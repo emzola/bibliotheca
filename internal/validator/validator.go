@@ -4,6 +4,8 @@ package validator
 
 import (
 	"regexp"
+
+	"github.com/gabriel-vasile/mimetype"
 )
 
 var EmailRx = "^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
@@ -61,4 +63,14 @@ func Unique(values []string) bool {
 		uniqueValues[value] = true
 	}
 	return len(values) == len(uniqueValues)
+}
+
+// Mime returns true if a specific mime type is in a list of strings.
+func Mime(value *mimetype.MIME, list ...string) bool {
+	for i := range list {
+		if value.String() == list[i] {
+			return true
+		}
+	}
+	return false
 }

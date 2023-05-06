@@ -1,8 +1,13 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
+)
+
+var (
+	ErrInvalidMimeType = errors.New("content type is not supported")
 )
 
 func (app *application) logError(r *http.Request, err error) {
@@ -35,4 +40,24 @@ func (app *application) notFoundResponse(w http.ResponseWriter, r *http.Request)
 func (app *application) methodNotAllowed(w http.ResponseWriter, r *http.Request) {
 	message := fmt.Sprintf("the %s method is not supported for this resource", r.Method)
 	app.errorResponse(w, r, http.StatusMethodNotAllowed, message)
+}
+
+func (app *application) fileNotExistResponse(w http.ResponseWriter, r *http.Request, err error) {
+	app.logError(r, err)
+	message := "the requested file does not exist"
+	app.errorResponse(w, r, http.StatusInternalServerError, message)
+}
+
+func (app *application) contentTooLargeResponse(w http.ResponseWriter, r *http.Request) {
+	message := "the request body is too large"
+	app.errorResponse(w, r, http.StatusRequestEntityTooLarge, message)
+}
+
+func (app *application) unsupportedMediaTypeResponse(w http.ResponseWriter, r *http.Request) {
+	message := "the file type is not supported for this resource"
+	app.errorResponse(w, r, http.StatusUnsupportedMediaType, message)
+}
+
+func (app *application) badRequestResponse(w http.ResponseWriter, r *http.Request, err error) {
+	app.errorResponse(w, r, http.StatusBadRequest, err.Error())
 }
