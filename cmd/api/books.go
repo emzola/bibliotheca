@@ -39,13 +39,14 @@ func (app *application) createBookHandler(w http.ResponseWriter, r *http.Request
 		}
 		return
 	}
-	_, err = app.uploadFileToS3(app.config.s3.client, buffer, mtype, fileHeader)
+	s3FileKey, err := app.uploadFileToS3(app.config.s3.client, buffer, mtype, fileHeader)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
 	book := &data.Book{
-		Title: strings.TrimSuffix(fileHeader.Filename, filepath.Ext(fileHeader.Filename)),
+		Title:     strings.TrimSuffix(fileHeader.Filename, filepath.Ext(fileHeader.Filename)),
+		S3FileKey: s3FileKey,
 		Info: map[string]string{
 			"filename": fileHeader.Filename,
 			"size":     app.formatFileSize(fileHeader.Size),

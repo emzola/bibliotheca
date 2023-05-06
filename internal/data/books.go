@@ -21,7 +21,7 @@ type Book struct {
 	Isbn10      string            `json:"isbn10,omitempty"`
 	Isbn13      string            `json:"isbn13,omitempty"`
 	Cover       string            `json:"cover,omitempty"`
-	Path        string            `json:"path"`
+	S3FileKey   string            `json:"s3filekey"`
 	Info        map[string]string `json:"info"` // original filename and size (in KB or MB)
 	Version     int32             `json:"version"`
 }
