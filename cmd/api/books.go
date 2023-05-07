@@ -47,10 +47,15 @@ func (app *application) createBookHandler(w http.ResponseWriter, r *http.Request
 	book := &data.Book{
 		Title:     strings.TrimSuffix(fileHeader.Filename, filepath.Ext(fileHeader.Filename)),
 		S3FileKey: s3FileKey,
-		Info: map[string]string{
+		AdditionalInfo: data.AdditionalInfo{
 			"filename": fileHeader.Filename,
 			"size":     app.formatFileSize(fileHeader.Size),
 		},
+	}
+	err = app.models.Book.Insert(book)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
 	}
 	headers := make(http.Header)
 	headers.Set("Location", fmt.Sprintf("/v1/books/%d", book.ID))

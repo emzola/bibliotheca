@@ -10,6 +10,7 @@ import (
 	s3Config "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/emzola/bibliotheca/internal/data"
 	"github.com/emzola/bibliotheca/internal/jsonlog"
 	_ "github.com/lib/pq"
 )
@@ -36,6 +37,7 @@ type config struct {
 type application struct {
 	config config
 	logger *jsonlog.Logger
+	models data.Models
 }
 
 func main() {
@@ -69,6 +71,7 @@ func main() {
 	app := &application{
 		config: cfg,
 		logger: logger,
+		models: *data.NewModels(db),
 	}
 
 	// Start the HTTP server
