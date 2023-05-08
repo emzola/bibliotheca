@@ -1,6 +1,13 @@
 package data
 
-import "database/sql"
+import (
+	"database/sql"
+	"errors"
+)
+
+var (
+	ErrRecordNotFound = errors.New("record not found")
+)
 
 // Models is a convenient single 'container' which holds and represents
 // all database models for the application.

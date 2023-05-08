@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -18,9 +19,20 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/emzola/bibliotheca/internal/validator"
 	"github.com/gabriel-vasile/mimetype"
+	"github.com/julienschmidt/httprouter"
 )
 
 type envelope map[string]interface{}
+
+// readIDParam pulls the url id parameter from the request and returns it or an error if any.
+func (a *application) readIDParam(r *http.Request) (int64, error) {
+	params := httprouter.ParamsFromContext(r.Context())
+	id, err := strconv.ParseInt(params.ByName("id"), 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
+}
 
 // formatFileSize formats a bytes file size and returns a string with KB or MB suffix.
 func (app *application) formatFileSize(size int64) string {

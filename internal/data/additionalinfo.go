@@ -3,29 +3,28 @@ package data
 import (
 	"database/sql/driver"
 	"encoding/json"
-	"fmt"
+	"errors"
 )
 
-// AdditionalInfo implements database/sql.Scanner and database/sql/driver.Valuer interfaces.
-// This is to enable the AdditionalInfo field of the Book struct to be saved as jsonb in the database.
-type AdditionalInfo map[string]string
+// The AdditionalInfo struct represents the data in the JSON/JSONB column.
+// It implements driver.Valuer and sql.Scanner interfaces.
+type AdditionalInfo struct {
+	Filename string
+	Size     string
+}
 
-// Value marshals the object into a JSON byte slice that can be understood by the database.
+// This method implements the driver.Valuer interface and
+// simply returns the JSON-encoded representation of the struct
 func (a AdditionalInfo) Value() (driver.Value, error) {
 	return json.Marshal(a)
 }
 
-// Scan unmarshals a JSON byte slice from the database into the map.
-func (a AdditionalInfo) Scan(value interface{}) error {
-	if value == nil {
-		return nil
+// This method implements the sql.Scanner interface and
+// simply decodes a JSON-encoded value into the struct fields.
+func (a *AdditionalInfo) Scan(value interface{}) error {
+	b, ok := value.([]byte)
+	if !ok {
+		return errors.New("type assertion to []byte failed")
 	}
-	switch data := value.(type) {
-	case string:
-		return json.Unmarshal([]byte(data), &a)
-	case []byte:
-		return json.Unmarshal(data, &a)
-	default:
-		return fmt.Errorf("type assertion to %t failed", value)
-	}
+	return json.Unmarshal(b, &a)
 }
