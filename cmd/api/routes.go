@@ -16,6 +16,7 @@ func (app *application) routes() http.Handler {
 
 	router.HandlerFunc(http.MethodPost, "/v1/books", app.createBookHandler)
 	router.HandlerFunc(http.MethodGet, "/v1/books/:id", app.showBookHandler)
+	router.HandlerFunc(http.MethodPatch, "/v1/books/:id", app.updateBookHandler)
 
 	return router
 }
