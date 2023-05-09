@@ -31,7 +31,7 @@ func (app *application) createBookHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 	defer file.Close()
-	buffer, mtype, err := app.detectMimeType(file, fileHeader)
+	buffer, mtype, err := app.detectMimeType(file, fileHeader, ScopeBook)
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrInvalidMimeType):
@@ -41,7 +41,7 @@ func (app *application) createBookHandler(w http.ResponseWriter, r *http.Request
 		}
 		return
 	}
-	s3FileKey, err := app.uploadFileToS3(app.config.s3.client, buffer, mtype, fileHeader)
+	s3FileKey, err := app.uploadFileToS3(app.config.s3.client, buffer, mtype, fileHeader, ScopeBook)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -171,6 +171,72 @@ func (app *application) updateBookHandler(w http.ResponseWriter, r *http.Request
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
+	err = app.models.Book.Update(book)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrEditConflict):
+			app.editConflictResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	err = app.encodeJSON(w, http.StatusOK, envelope{"book": book}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) updateBookCoverHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readIDParam(r)
+	if err != nil || id < 1 {
+		app.notFoundResponse(w, r)
+		return
+	}
+	book, err := app.models.Book.Get(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	maxBytes := int64(2_097_152)
+	r.Body = http.MaxBytesReader(w, r.Body, maxBytes)
+	err = r.ParseMultipartForm(5000)
+	if err != nil {
+		var maxBytesError *http.MaxBytesError
+		switch {
+		case errors.As(err, &maxBytesError):
+			app.contentTooLargeResponse(w, r)
+		default:
+			app.badRequestResponse(w, r, err)
+		}
+		return
+	}
+	file, fileHeader, err := r.FormFile("cover")
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	buffer, mtype, err := app.detectMimeType(file, fileHeader, ScopeCover)
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrInvalidMimeType):
+			app.unsupportedMediaTypeResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	s3CoverPath, err := app.uploadFileToS3(app.config.s3.client, buffer, mtype, fileHeader, ScopeCover)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	book.CoverPath = &s3CoverPath
 	err = app.models.Book.Update(book)
 	if err != nil {
 		switch {

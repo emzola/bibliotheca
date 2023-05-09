@@ -116,8 +116,8 @@ func (m BookModel) Update(book *Book) error {
 	query := `
 		UPDATE book
 		SET title = $1, description = $2, author = $3, category = $4, publisher = $5, language = $6, series = $7, volume = $8, 
-		edition = $9, year = $10, page_count = $11, isbn_10 = $12, isbn_13 = $13, version = version + 1
-		WHERE id = $14 AND version = $15
+		edition = $9, year = $10, page_count = $11, isbn_10 = $12, isbn_13 = $13, cover_path = $14, version = version + 1
+		WHERE id = $15 AND version = $16
 		RETURNING version`
 	args := []interface{}{
 		book.Title,
@@ -133,6 +133,7 @@ func (m BookModel) Update(book *Book) error {
 		book.PageCount,
 		book.Isbn10,
 		book.Isbn13,
+		book.CoverPath,
 		book.ID,
 		book.Version,
 	}

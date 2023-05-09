@@ -24,6 +24,11 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+const (
+	ScopeCover = "cover"
+	ScopeBook  = "book"
+)
+
 type envelope map[string]interface{}
 
 // readIDParam pulls the url id parameter from the request and returns it or an error if any.
@@ -110,19 +115,28 @@ func (app *application) formatFileSize(size int64) string {
 // detectMimeType detects and validates the content type of a multipart file to ensure it is supported.
 // This method is a workaround to the problem encountered when trying to detect content type directly
 // inside createbookHandler (i.e. the multipart file becomes corrupted once it's parsed to detect its mime type).
-func (app *application) detectMimeType(file multipart.File, fileHeader *multipart.FileHeader) ([]byte, *mimetype.MIME, error) {
+func (app *application) detectMimeType(file multipart.File, fileHeader *multipart.FileHeader, scope string) ([]byte, *mimetype.MIME, error) {
 	size := fileHeader.Size
 	buffer := make([]byte, size)
 	file.Read(buffer)
 	mtype := mimetype.Detect(buffer)
-	supportedMediaType := []string{
-		"application/pdf",
-		"application/epub+zip",
-		"application/x-ms-reader",
-		"application/x-mobipocket-ebook",
-		"application/vnd.oasis.opendocument.text",
-		"text/rtf",
-		"image/vnd.djvu",
+	var supportedMediaType []string
+	switch scope {
+	case ScopeCover:
+		supportedMediaType = []string{
+			"image/jpeg",
+			"image/png",
+		}
+	case ScopeBook:
+		supportedMediaType = []string{
+			"application/pdf",
+			"application/epub+zip",
+			"application/x-ms-reader",
+			"application/x-mobipocket-ebook",
+			"application/vnd.oasis.opendocument.text",
+			"text/rtf",
+			"image/vnd.djvu",
+		}
 	}
 	if v := validator.Mime(mtype, supportedMediaType...); !v {
 		return nil, nil, ErrInvalidMimeType
@@ -131,23 +145,37 @@ func (app *application) detectMimeType(file multipart.File, fileHeader *multipar
 }
 
 // uploadFileToS3 saves a form file to aws bucket and returns the key to the s3 file or an error if any.
-func (app *application) uploadFileToS3(client *s3.Client, buffer []byte, mtype *mimetype.MIME, fileHeader *multipart.FileHeader) (string, error) {
+func (app *application) uploadFileToS3(client *s3.Client, buffer []byte, mtype *mimetype.MIME, fileHeader *multipart.FileHeader, scope string) (string, error) {
 	randomBytes := make([]byte, 16)
 	_, err := rand.Read(randomBytes)
 	if err != nil {
 		return "", err
 	}
-	// TODO! Set uniqueFileName to include user id in the path e.g books/1/abc.pdf
-	uniqueFileName := "books/" + strings.ToLower(base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(randomBytes)) + filepath.Ext(fileHeader.Filename)
+	var uniqueFileName string
 	uploader := manager.NewUploader(client)
-	_, err = uploader.Upload(context.TODO(), &s3.PutObjectInput{
-		Bucket:             aws.String(os.Getenv("AWS_S3_BUCKET")),
-		Key:                aws.String(uniqueFileName),
-		Body:               bytes.NewReader(buffer),
-		ContentLength:      *aws.Int64(fileHeader.Size),
-		ContentType:        aws.String(mtype.String()),
-		ContentDisposition: aws.String("attachment"),
-	})
+	// TODO! Set uniqueFileName to include user id in the path e.g books/1/abc.pdf
+	switch scope {
+	case ScopeCover:
+		uniqueFileName = "bookcovers/" + strings.ToLower(base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(randomBytes)) + filepath.Ext(fileHeader.Filename)
+		_, err = uploader.Upload(context.TODO(), &s3.PutObjectInput{
+			Bucket:        aws.String(os.Getenv("AWS_S3_BUCKET")),
+			Key:           aws.String(uniqueFileName),
+			Body:          bytes.NewReader(buffer),
+			ContentLength: *aws.Int64(fileHeader.Size),
+			ContentType:   aws.String(mtype.String()),
+		})
+		uniqueFileName = "https://" + os.Getenv("AWS_S3_BUCKET") + ".s3." + os.Getenv("AWS_S3_REGION") + ".amazonaws.com/" + uniqueFileName
+	case ScopeBook:
+		uniqueFileName = "books/" + strings.ToLower(base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(randomBytes)) + filepath.Ext(fileHeader.Filename)
+		_, err = uploader.Upload(context.TODO(), &s3.PutObjectInput{
+			Bucket:             aws.String(os.Getenv("AWS_S3_BUCKET")),
+			Key:                aws.String(uniqueFileName),
+			Body:               bytes.NewReader(buffer),
+			ContentLength:      *aws.Int64(fileHeader.Size),
+			ContentType:        aws.String(mtype.String()),
+			ContentDisposition: aws.String("attachment"),
+		})
+	}
 	if err != nil {
 		return "", err
 	}
