@@ -11,6 +11,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -58,6 +59,7 @@ func (app *application) encodeJSON(w http.ResponseWriter, status int, data envel
 	return nil
 }
 
+// encodeJSON de-serializes JSON data in the Go types.
 func (app *application) decodeJSON(w http.ResponseWriter, r *http.Request, dst interface{}) error {
 	maxBytes := 1_048_576
 	r.Body = http.MaxBytesReader(w, r.Body, int64(maxBytes))
@@ -183,6 +185,7 @@ func (app *application) uploadFileToS3(client *s3.Client, buffer []byte, mtype *
 	return uniqueFileName, nil
 }
 
+// downloadFileFromS3 downloads a file from the aws s3 bucket.
 func (app *application) downloadFileFromS3(client *s3.Client, book *data.Book) error {
 	filename := book.AdditionalInfo.FileName
 	newFile, err := os.Create(filename)
@@ -199,4 +202,42 @@ func (app *application) downloadFileFromS3(client *s3.Client, book *data.Book) e
 		return err
 	}
 	return nil
+}
+
+// readString returns a string value from the query string, or the provided default value
+// if no matching key could be found.
+func (app *application) readString(qs url.Values, key, defaultValue string) string {
+	s := qs.Get(key)
+	if s == "" {
+		return defaultValue
+	}
+	return s
+}
+
+// readCSV reads a string value from the query string and then splits it into a slice
+// on the comma character. If no matching key could be found, it returns the provided
+// default value.
+func (app *application) readCSV(qs url.Values, key string, defaultValue []string) []string {
+	csv := qs.Get(key)
+	if csv == "" {
+		return defaultValue
+	}
+	return strings.Split(csv, ",")
+}
+
+// readInt reads a string value from the query string and converts it to an
+// integer before returning. If no matching key could be found it returns the provided
+// default value. If the value couldn't be converted to an integer, then we record an
+// error message in the provided Validator instance.
+func (app *application) readInt(qs url.Values, key string, defaultValue int, v *validator.Validator) int {
+	s := qs.Get(key)
+	if s == "" {
+		return defaultValue
+	}
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		v.AddError(key, "must be an integer value")
+		return defaultValue
+	}
+	return i
 }
