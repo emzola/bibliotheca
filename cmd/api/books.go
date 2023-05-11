@@ -50,6 +50,7 @@ func (app *application) createBookHandler(w http.ResponseWriter, r *http.Request
 	book.Title = strings.TrimSuffix(fileHeader.Filename, filepath.Ext(fileHeader.Filename))
 	book.S3FileKey = s3FileKey
 	book.AdditionalInfo = data.AdditionalInfo{
+		FileName:      fileHeader.Filename,
 		FileExtension: strings.ToUpper(strings.TrimPrefix(filepath.Ext(fileHeader.Filename), ".")),
 		FileSize:      app.formatFileSize(fileHeader.Size),
 	}
@@ -250,6 +251,28 @@ func (app *application) updateBookCoverHandler(w http.ResponseWriter, r *http.Re
 	err = app.encodeJSON(w, http.StatusOK, envelope{"book": book}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) downloadBookHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readIDParam(r)
+	if err != nil || id < 1 {
+		app.notFoundResponse(w, r)
+		return
+	}
+	book, err := app.models.Book.Get(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	err = app.downloadFileFromS3(app.config.s3.client, book)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
 	}
 }
 

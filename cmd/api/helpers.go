@@ -19,6 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/emzola/bibliotheca/internal/data"
 	"github.com/emzola/bibliotheca/internal/validator"
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/julienschmidt/httprouter"
@@ -180,4 +181,22 @@ func (app *application) uploadFileToS3(client *s3.Client, buffer []byte, mtype *
 		return "", err
 	}
 	return uniqueFileName, nil
+}
+
+func (app *application) downloadFileFromS3(client *s3.Client, book *data.Book) error {
+	filename := book.AdditionalInfo.FileName
+	newFile, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer newFile.Close()
+	downloader := manager.NewDownloader(client)
+	_, err = downloader.Download(context.TODO(), newFile, &s3.GetObjectInput{
+		Bucket: aws.String(os.Getenv("AWS_S3_BUCKET")),
+		Key:    aws.String(book.S3FileKey),
+	})
+	if err != nil {
+		return err
+	}
+	return nil
 }

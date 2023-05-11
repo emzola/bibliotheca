@@ -9,6 +9,7 @@ import (
 // The AdditionalInfo struct represents the data in the JSON/JSONB column.
 // It implements driver.Valuer and sql.Scanner interfaces.
 type AdditionalInfo struct {
+	FileName      string
 	FileExtension string
 	FileSize      string
 }
