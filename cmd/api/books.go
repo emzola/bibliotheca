@@ -99,7 +99,7 @@ func (app *application) listBooksHandler(w http.ResponseWriter, r *http.Request)
 		ToYear    int
 		Language  []string
 		Extension []string
-		data.Filters
+		Filters   data.Filters
 	}
 	v := validator.New()
 	qs := r.URL.Query()
@@ -114,11 +114,20 @@ func (app *application) listBooksHandler(w http.ResponseWriter, r *http.Request)
 	input.Filters.Page = app.readInt(qs, "page", 1, v)
 	input.Filters.PageSize = app.readInt(qs, "page_size", 10, v)
 	input.Filters.Sort = app.readString(qs, "sort", "id")
-	if !v.Valid() {
+	input.Filters.SortSafeList = []string{"id", "title", "year", "size", "date", "rating", "-id", "-title", "-year", "-size", "-date", "-rating"}
+	if data.ValidateFilters(v, input.Filters); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
-	fmt.Fprintf(w, "%+v\n", input)
+	books, err := app.models.Book.GetAll(input.Title, input.Author, input.Isbn, input.Publisher, input.FromYear, input.ToYear, input.Language, input.Extension, input.Filters)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	err = app.encodeJSON(w, http.StatusOK, envelope{"books": books}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 }
 
 func (app *application) updateBookHandler(w http.ResponseWriter, r *http.Request) {

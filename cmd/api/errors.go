@@ -42,11 +42,11 @@ func (app *application) methodNotAllowed(w http.ResponseWriter, r *http.Request)
 	app.errorResponse(w, r, http.StatusMethodNotAllowed, message)
 }
 
-func (app *application) fileNotExistResponse(w http.ResponseWriter, r *http.Request, err error) {
-	app.logError(r, err)
-	message := "the requested file does not exist"
-	app.errorResponse(w, r, http.StatusInternalServerError, message)
-}
+// func (app *application) fileNotExistResponse(w http.ResponseWriter, r *http.Request, err error) {
+// 	app.logError(r, err)
+// 	message := "the requested file does not exist"
+// 	app.errorResponse(w, r, http.StatusInternalServerError, message)
+// }
 
 func (app *application) contentTooLargeResponse(w http.ResponseWriter, r *http.Request) {
 	message := "the request body is too large"
