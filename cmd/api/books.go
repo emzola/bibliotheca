@@ -164,40 +164,40 @@ func (app *application) updateBookHandler(w http.ResponseWriter, r *http.Request
 		book.Title = *input.Title
 	}
 	if input.Description != nil {
-		book.Description = input.Description
+		book.Description = *input.Description
 	}
 	if input.Author != nil {
 		book.Author = input.Author
 	}
 	if input.Category != nil {
-		book.Category = input.Category
+		book.Category = *input.Category
 	}
 	if input.Publisher != nil {
-		book.Publisher = input.Publisher
+		book.Publisher = *input.Publisher
 	}
 	if input.Language != nil {
-		book.Language = input.Language
+		book.Language = *input.Language
 	}
 	if input.Series != nil {
-		book.Series = input.Series
+		book.Series = *input.Series
 	}
 	if input.Volume != nil {
-		book.Volume = input.Volume
+		book.Volume = *input.Volume
 	}
 	if input.Edition != nil {
-		book.Edition = input.Edition
+		book.Edition = *input.Edition
 	}
 	if input.Year != nil {
-		book.Year = input.Year
+		book.Year = *input.Year
 	}
 	if input.PageCount != nil {
-		book.PageCount = input.PageCount
+		book.PageCount = *input.PageCount
 	}
 	if input.Isbn10 != nil {
-		book.Isbn10 = input.Isbn10
+		book.Isbn10 = *input.Isbn10
 	}
 	if input.Isbn13 != nil {
-		book.Isbn13 = input.Isbn13
+		book.Isbn13 = *input.Isbn13
 	}
 	v := validator.New()
 	if data.ValidateBook(v, book); !v.Valid() {
@@ -269,7 +269,7 @@ func (app *application) updateBookCoverHandler(w http.ResponseWriter, r *http.Re
 		app.serverErrorResponse(w, r, err)
 		return
 	}
-	book.CoverPath = &s3CoverPath
+	book.CoverPath = s3CoverPath
 	err = app.models.Book.Update(book)
 	if err != nil {
 		switch {
