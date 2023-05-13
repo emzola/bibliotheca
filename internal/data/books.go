@@ -50,8 +50,8 @@ func ValidateBook(v *validator.Validator, book *Book) {
 	v.Check(book.Year != 0, "year", "must be provided")
 	v.Check(book.Year >= 1900, "year", "must be greater than 1900")
 	v.Check(book.Year <= int32(time.Now().Year()), "year", "must not be in the future")
-	v.Check(len(book.Isbn10) <= 10, "isbn10", "must not be more than 10 characters")
-	v.Check(len(book.Isbn13) <= 13, "isbn13", "must not be more than 13 characters")
+	v.Check(len(book.Isbn10) <= 13, "isbn10", "must not be more than 13 characters")
+	v.Check(len(book.Isbn13) <= 17, "isbn13", "must not be more than 17 characters")
 }
 
 // BookModel wraps a sql.DB connection pool for Book.
@@ -174,14 +174,29 @@ func (m BookModel) Delete(id int64) error {
 	return nil
 }
 
-func (m BookModel) GetAll(title, author, isbn, publisher string, fromYear, toYear int, language, extension []string, filters Filters) ([]*Book, error) {
+func (m BookModel) GetAll(title string, author []string, isbn10, isbn13, publisher string, fromYear, toYear int, language, extension []string, filters Filters) ([]*Book, error) {
 	query := `
 		SELECT id, created_at, title, description, author, category, publisher,	language, series, volume, edition, year, page_count, isbn_10, isbn_13, cover_path, s3_file_key, additional_info, version
 		FROM book  
+		WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', $1) OR $1 = '') 
+		AND (author @> $2 OR $2 = '{}') 
+		AND (LOWER(isbn_10) = LOWER($3) OR $3 = '') 
+		AND (LOWER(isbn_13) = LOWER($4) OR $4 = '') 
+		AND (to_tsvector('simple', publisher) @@ plainto_tsquery('simple', $5) OR $5 = '') 
+		AND (
+			CASE 
+				WHEN $6 > 0 AND $7 = 0 THEN year BETWEEN $6 AND EXTRACT(YEAR FROM CURRENT_DATE)
+				WHEN ($6 = 0 AND $7 > 0) OR ($6 > 0 AND $7 > 0) THEN year BETWEEN $6 AND $7
+				ELSE year BETWEEN 1900 AND EXTRACT(YEAR FROM CURRENT_DATE)
+			END
+		)
+		AND (language ILIKE ANY($8) OR $8 = '{}') 
+		AND (additional_info::jsonb->>'FileExtension' ILIKE ANY($9) OR $9 = '{}')
 		ORDER BY id`
+	args := []interface{}{title, pq.Array(author), isbn10, isbn13, publisher, fromYear, toYear, pq.Array(language), pq.Array(extension)}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	rows, err := m.DB.QueryContext(ctx, query)
+	rows, err := m.DB.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
