@@ -39,3 +39,9 @@ db/migrations/new:
 db/migrations/up: confirm
 	@echo 'Running up migrations...'
 	@migrate -path ./migrations -database ${BIBLIOTHECA_DB_DSN} up
+
+## db/migrations/down: apply all down database migrations
+.PHONY: db/migrations/down
+db/migrations/up: confirm
+	@echo 'Running down migrations...'
+	@migrate -path ./migrations -database ${BIBLIOTHECA_DB_DSN} down

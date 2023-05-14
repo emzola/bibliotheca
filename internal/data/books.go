@@ -183,37 +183,54 @@ func (m BookModel) Delete(id int64) error {
 	return nil
 }
 
-func (m BookModel) GetAll(title string, author []string, isbn10, isbn13, publisher string, fromYear, toYear int, language, extension []string, filters Filters) ([]*Book, error) {
+func (m BookModel) GetAll(title string, author []string, isbn10, isbn13, publisher string, fromYear, toYear int, language, extension []string, filters Filters) ([]*Book, Metadata, error) {
 	query := fmt.Sprintf(`
-	SELECT id, created_at, title, description, author, category, publisher,	language, series, volume, edition, year, page_count, isbn_10, isbn_13, cover_path, s3_file_key, fname, extension, size, popularity, version
-	FROM book  
-	WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', $1) OR $1 = '') 
-	AND (author @> $2 OR $2 = '{}') 
-	AND (LOWER(isbn_10) = LOWER($3) OR $3 = '') 
-	AND (LOWER(isbn_13) = LOWER($4) OR $4 = '') 
-	AND (to_tsvector('simple', publisher) @@ plainto_tsquery('simple', $5) OR $5 = '') 
-	AND (
-		CASE 
-			WHEN $6 > 0 AND $7 = 0 THEN year BETWEEN $6 AND EXTRACT(YEAR FROM CURRENT_DATE)
-			WHEN ($6 = 0 AND $7 > 0) OR ($6 > 0 AND $7 > 0) THEN year BETWEEN $6 AND $7
-			ELSE year BETWEEN 1900 AND EXTRACT(YEAR FROM CURRENT_DATE)
-		END
+		SELECT count(*) OVER(), id, created_at, title, description, author, category, publisher, language, series, volume, edition, year, page_count, isbn_10, isbn_13, cover_path, s3_file_key, fname, extension, size, popularity, version
+		FROM book  
+		WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', $1) OR $1 = '') 
+		AND (author @> $2 OR $2 = '{}') 
+		AND (LOWER(isbn_10) = LOWER($3) OR $3 = '') 
+		AND (LOWER(isbn_13) = LOWER($4) OR $4 = '') 
+		AND (to_tsvector('simple', publisher) @@ plainto_tsquery('simple', $5) OR $5 = '') 
+		AND (
+			CASE 
+				WHEN $6 > 0 AND $7 = 0 THEN year BETWEEN $6 AND EXTRACT(YEAR FROM CURRENT_DATE)
+				WHEN ($6 = 0 AND $7 > 0) OR ($6 > 0 AND $7 > 0) THEN year BETWEEN $6 AND $7
+				ELSE year BETWEEN 1900 AND EXTRACT(YEAR FROM CURRENT_DATE)
+			END
+		)
+		AND (language ILIKE ANY($8) OR $8 = '{}') 
+		AND (extension ILIKE ANY($9) OR $9 = '{}')
+		ORDER BY %s %s, id ASC
+		LIMIT $10 OFFSET $11`,
+		filters.sortColumn(), filters.sortDirection(),
 	)
-	AND (language ILIKE ANY($8) OR $8 = '{}') 
-	AND (extension ILIKE ANY($9) OR $9 = '{}')
-	ORDER BY %s %s, id ASC`, filters.sortColumn(), filters.sortDirection())
-	args := []interface{}{title, pq.Array(author), isbn10, isbn13, publisher, fromYear, toYear, pq.Array(language), pq.Array(extension)}
+	args := []interface{}{
+		title,
+		pq.Array(author),
+		isbn10,
+		isbn13,
+		publisher,
+		fromYear,
+		toYear,
+		pq.Array(language),
+		pq.Array(extension),
+		filters.limit(),
+		filters.offset(),
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	rows, err := m.DB.QueryContext(ctx, query, args...)
 	if err != nil {
-		return nil, err
+		return nil, Metadata{}, err
 	}
 	defer rows.Close()
+	totalRecords := 0
 	books := []*Book{}
 	for rows.Next() {
 		var book Book
 		err := rows.Scan(
+			&totalRecords,
 			&book.ID,
 			&book.CreatedAt,
 			&book.Title,
@@ -238,12 +255,13 @@ func (m BookModel) GetAll(title string, author []string, isbn10, isbn13, publish
 			&book.Version,
 		)
 		if err != nil {
-			return nil, err
+			return nil, Metadata{}, err
 		}
 		books = append(books, &book)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, Metadata{}, err
 	}
-	return books, nil
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+	return books, metadata, nil
 }

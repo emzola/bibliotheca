@@ -119,12 +119,12 @@ func (app *application) listBooksHandler(w http.ResponseWriter, r *http.Request)
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
-	books, err := app.models.Book.GetAll(input.Title, input.Author, input.Isbn10, input.Isbn13, input.Publisher, input.FromYear, input.ToYear, input.Language, input.Extension, input.Filters)
+	books, metadata, err := app.models.Book.GetAll(input.Title, input.Author, input.Isbn10, input.Isbn13, input.Publisher, input.FromYear, input.ToYear, input.Language, input.Extension, input.Filters)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
-	err = app.encodeJSON(w, http.StatusOK, envelope{"books": books}, nil)
+	err = app.encodeJSON(w, http.StatusOK, envelope{"books": books, "metadata": metadata}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

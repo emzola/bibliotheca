@@ -1,11 +1,13 @@
 package data
 
 import (
+	"math"
 	"strings"
 
 	"github.com/emzola/bibliotheca/internal/validator"
 )
 
+// The Filters struct holds data required for sorting and pagination.
 type Filters struct {
 	Page         int
 	PageSize     int
@@ -38,4 +40,39 @@ func (f Filters) sortDirection() string {
 		return "DESC"
 	}
 	return "ASC"
+}
+
+func (f Filters) limit() int {
+	return f.PageSize
+}
+
+func (f Filters) offset() int {
+	return (f.Page - 1) * f.PageSize
+}
+
+// The Metadata struct holds pagination metadata.
+type Metadata struct {
+	CurrentPage  int `json:"current_page,omitempty"`
+	PageSize     int `json:"page_size,omitempty"`
+	FirstPage    int `json:"first_page,omitempty"`
+	Lastpage     int `json:"last_page,omitempty"`
+	TotalRecords int `json:"total_records,omitempty"`
+}
+
+// The calculateMetadata() function calculates the appropriate pagination metadata
+// values given the total number of records, current page, and page size values. Note
+// that the last page value is calculated using the math.Ceil() function, which rounds
+// up a float to the nearest integer. So, for example, if there were 12 records in total
+// and a page size of 5, the last page value would be math.Ceil(12/5) = 3.
+func calculateMetadata(totalRecords, page, pageSize int) Metadata {
+	if totalRecords == 0 {
+		return Metadata{}
+	}
+	return Metadata{
+		CurrentPage:  page,
+		PageSize:     pageSize,
+		FirstPage:    1,
+		Lastpage:     int(math.Ceil(float64(totalRecords) / float64(pageSize))),
+		TotalRecords: totalRecords,
+	}
 }
