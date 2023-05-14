@@ -16,6 +16,9 @@ CREATE TABLE IF NOT EXISTS book (
     isbn_13 varchar(17) NOT NULL DEFAULT '',
     cover_path text NOT NULL DEFAULT '',
     s3_file_key text NOT NULL,
-    additional_info jsonb NOT NULL,
+    fname text NOT NULL,
+    extension text NOT NULL, 
+    size integer NOT NULL,
+    popularity integer NOT NULL DEFAULT 0,
     version integer NOT NULL DEFAULT 1
 );

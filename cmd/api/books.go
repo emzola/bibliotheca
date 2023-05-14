@@ -49,11 +49,9 @@ func (app *application) createBookHandler(w http.ResponseWriter, r *http.Request
 	book := &data.Book{}
 	book.Title = strings.TrimSuffix(fileHeader.Filename, filepath.Ext(fileHeader.Filename))
 	book.S3FileKey = s3FileKey
-	book.AdditionalInfo = data.AdditionalInfo{
-		FileName:      fileHeader.Filename,
-		FileExtension: strings.ToUpper(strings.TrimPrefix(filepath.Ext(fileHeader.Filename), ".")),
-		FileSize:      app.formatFileSize(fileHeader.Size),
-	}
+	book.Filename = fileHeader.Filename
+	book.Extension = strings.ToUpper(strings.TrimPrefix(filepath.Ext(fileHeader.Filename), "."))
+	book.Size = fileHeader.Size
 	err = app.models.Book.Insert(book)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
@@ -116,7 +114,7 @@ func (app *application) listBooksHandler(w http.ResponseWriter, r *http.Request)
 	input.Filters.Page = app.readInt(qs, "page", 1, v)
 	input.Filters.PageSize = app.readInt(qs, "page_size", 10, v)
 	input.Filters.Sort = app.readString(qs, "sort", "id")
-	input.Filters.SortSafeList = []string{"id", "title", "year", "size", "date", "rating", "-id", "-title", "-year", "-size", "-date", "-rating"}
+	input.Filters.SortSafeList = []string{"id", "title", "year", "size", "created_at", "popularity", "-id", "-title", "-year", "-size", "-created_at", "-popularity"}
 	if data.ValidateFilters(v, input.Filters); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
 		return
@@ -165,6 +163,7 @@ func (app *application) updateBookHandler(w http.ResponseWriter, r *http.Request
 		PageCount   *int32   `json:"page_count,omitempty"`
 		Isbn10      *string  `json:"isbn_10,omitempty"`
 		Isbn13      *string  `json:"isbn_13,omitempty"`
+		Popularity  *int8    `json:"popularity,omitempty"`
 	}
 	err = app.decodeJSON(w, r, &input)
 	if err != nil {
@@ -209,6 +208,9 @@ func (app *application) updateBookHandler(w http.ResponseWriter, r *http.Request
 	}
 	if input.Isbn13 != nil {
 		book.Isbn13 = *input.Isbn13
+	}
+	if input.Popularity != nil {
+		book.Popularity = *input.Popularity
 	}
 	v := validator.New()
 	if data.ValidateBook(v, book); !v.Valid() {

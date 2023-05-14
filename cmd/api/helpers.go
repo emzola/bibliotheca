@@ -102,18 +102,18 @@ func (app *application) decodeJSON(w http.ResponseWriter, r *http.Request, dst i
 }
 
 // formatFileSize formats a bytes file size and returns a string with KB or MB suffix.
-func (app *application) formatFileSize(size int64) string {
-	var format string
-	bytes := float64(size)
-	kilobytes := bytes / 1024
-	megabytes := kilobytes / 1024
-	if bytes < 1_048_576 {
-		format = fmt.Sprintf("%.1f KB", kilobytes)
-	} else {
-		format = fmt.Sprintf("%.1f MB", megabytes)
-	}
-	return format
-}
+// func (app *application) formatFileSize(size int64) string {
+// 	var format string
+// 	bytes := float64(size)
+// 	kilobytes := bytes / 1024
+// 	megabytes := kilobytes / 1024
+// 	if bytes < 1_048_576 {
+// 		format = fmt.Sprintf("%.1f KB", kilobytes)
+// 	} else {
+// 		format = fmt.Sprintf("%.1f MB", megabytes)
+// 	}
+// 	return format
+// }
 
 // detectMimeType detects and validates the content type of a multipart file to ensure it is supported.
 // This method is a workaround to the problem encountered when trying to detect content type directly
@@ -187,7 +187,7 @@ func (app *application) uploadFileToS3(client *s3.Client, buffer []byte, mtype *
 
 // downloadFileFromS3 downloads a file from the aws s3 bucket.
 func (app *application) downloadFileFromS3(client *s3.Client, book *data.Book) error {
-	filename := book.AdditionalInfo.FileName
+	filename := book.Filename
 	newFile, err := os.Create(filename)
 	if err != nil {
 		return err

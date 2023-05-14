@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/emzola/bibliotheca/internal/validator"
@@ -16,24 +17,27 @@ import (
 type Book struct {
 	ID int64 `json:"id"`
 	// UserID         int64             `json:"-"`
-	CreatedAt      time.Time      `json:"-"`
-	Title          string         `json:"title"`
-	Description    string         `json:"description,omitempty"`
-	Author         []string       `json:"author,omitempty"`
-	Category       string         `json:"category,omitempty"`
-	Publisher      string         `json:"publisher,omitempty"`
-	Language       string         `json:"language,omitempty"`
-	Series         string         `json:"series,omitempty"`
-	Volume         int32          `json:"volume,omitempty"`
-	Edition        string         `json:"edition,omitempty"`
-	Year           int32          `json:"year,omitempty"`
-	PageCount      int32          `json:"page_count,omitempty"`
-	Isbn10         string         `json:"isbn_10,omitempty"`
-	Isbn13         string         `json:"isbn_13,omitempty"`
-	CoverPath      string         `json:"cover_path,omitempty"`
-	S3FileKey      string         `json:"s3_file_key"`
-	AdditionalInfo AdditionalInfo `json:"additional_info"`
-	Version        int32          `json:"-"`
+	CreatedAt   time.Time `json:"-"`
+	Title       string    `json:"title"`
+	Description string    `json:"description,omitempty"`
+	Author      []string  `json:"author,omitempty"`
+	Category    string    `json:"category,omitempty"`
+	Publisher   string    `json:"publisher,omitempty"`
+	Language    string    `json:"language,omitempty"`
+	Series      string    `json:"series,omitempty"`
+	Volume      int32     `json:"volume,omitempty"`
+	Edition     string    `json:"edition,omitempty"`
+	Year        int32     `json:"year,omitempty"`
+	PageCount   int32     `json:"page_count,omitempty"`
+	Isbn10      string    `json:"isbn_10,omitempty"`
+	Isbn13      string    `json:"isbn_13,omitempty"`
+	CoverPath   string    `json:"cover_path,omitempty"`
+	S3FileKey   string    `json:"s3_file_key"`
+	Filename    string    `json:"filename"`
+	Extension   string    `json:"extension"`
+	Size        int64     `json:"size"`
+	Popularity  int8      `json:"popularity,omitempty"`
+	Version     int32     `json:"-"`
 }
 
 func ValidateBook(v *validator.Validator, book *Book) {
@@ -61,9 +65,10 @@ type BookModel struct {
 
 func (m BookModel) Insert(book *Book) error {
 	query := `
-		INSERT INTO book (title,  s3_file_key, additional_info)	VALUES ($1, $2, $3)
+		INSERT INTO book (title, s3_file_key, fname, extension, size)	
+		VALUES ($1, $2, $3, $4, $5)
 	  	RETURNING id, created_at, version`
-	args := []interface{}{book.Title, book.S3FileKey, book.AdditionalInfo}
+	args := []interface{}{book.Title, book.S3FileKey, book.Filename, book.Extension, book.Size}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	return m.DB.QueryRowContext(ctx, query, args...).Scan(&book.ID, &book.CreatedAt, &book.Version)
@@ -74,7 +79,7 @@ func (m BookModel) Get(id int64) (*Book, error) {
 		return nil, ErrRecordNotFound
 	}
 	query := `
-		SELECT id, created_at, title, description, author, category, publisher,	language, series, volume, edition, year, page_count, isbn_10, isbn_13, cover_path, s3_file_key, additional_info, version
+		SELECT id, created_at, title, description, author, category, publisher,	language, series, volume, edition, year, page_count, isbn_10, isbn_13, cover_path, s3_file_key, fname, extension, size, popularity, version
 		FROM book  
 		WHERE id = $1`
 	var book Book
@@ -98,7 +103,10 @@ func (m BookModel) Get(id int64) (*Book, error) {
 		&book.Isbn13,
 		&book.CoverPath,
 		&book.S3FileKey,
-		&book.AdditionalInfo,
+		&book.Filename,
+		&book.Extension,
+		&book.Size,
+		&book.Popularity,
 		&book.Version,
 	)
 	if err != nil {
@@ -116,8 +124,8 @@ func (m BookModel) Update(book *Book) error {
 	query := `
 		UPDATE book
 		SET title = $1, description = $2, author = $3, category = $4, publisher = $5, language = $6, series = $7, volume = $8, 
-		edition = $9, year = $10, page_count = $11, isbn_10 = $12, isbn_13 = $13, cover_path = $14, version = version + 1
-		WHERE id = $15 AND version = $16
+		edition = $9, year = $10, page_count = $11, isbn_10 = $12, isbn_13 = $13, cover_path = $14, popularity = $15, version = version + 1
+		WHERE id = $16 AND version = $17
 		RETURNING version`
 	args := []interface{}{
 		book.Title,
@@ -134,6 +142,7 @@ func (m BookModel) Update(book *Book) error {
 		book.Isbn10,
 		book.Isbn13,
 		book.CoverPath,
+		book.Popularity,
 		book.ID,
 		book.Version,
 	}
@@ -175,24 +184,24 @@ func (m BookModel) Delete(id int64) error {
 }
 
 func (m BookModel) GetAll(title string, author []string, isbn10, isbn13, publisher string, fromYear, toYear int, language, extension []string, filters Filters) ([]*Book, error) {
-	query := `
-		SELECT id, created_at, title, description, author, category, publisher,	language, series, volume, edition, year, page_count, isbn_10, isbn_13, cover_path, s3_file_key, additional_info, version
-		FROM book  
-		WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', $1) OR $1 = '') 
-		AND (author @> $2 OR $2 = '{}') 
-		AND (LOWER(isbn_10) = LOWER($3) OR $3 = '') 
-		AND (LOWER(isbn_13) = LOWER($4) OR $4 = '') 
-		AND (to_tsvector('simple', publisher) @@ plainto_tsquery('simple', $5) OR $5 = '') 
-		AND (
-			CASE 
-				WHEN $6 > 0 AND $7 = 0 THEN year BETWEEN $6 AND EXTRACT(YEAR FROM CURRENT_DATE)
-				WHEN ($6 = 0 AND $7 > 0) OR ($6 > 0 AND $7 > 0) THEN year BETWEEN $6 AND $7
-				ELSE year BETWEEN 1900 AND EXTRACT(YEAR FROM CURRENT_DATE)
-			END
-		)
-		AND (language ILIKE ANY($8) OR $8 = '{}') 
-		AND (additional_info::jsonb->>'FileExtension' ILIKE ANY($9) OR $9 = '{}')
-		ORDER BY id`
+	query := fmt.Sprintf(`
+	SELECT id, created_at, title, description, author, category, publisher,	language, series, volume, edition, year, page_count, isbn_10, isbn_13, cover_path, s3_file_key, fname, extension, size, popularity, version
+	FROM book  
+	WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', $1) OR $1 = '') 
+	AND (author @> $2 OR $2 = '{}') 
+	AND (LOWER(isbn_10) = LOWER($3) OR $3 = '') 
+	AND (LOWER(isbn_13) = LOWER($4) OR $4 = '') 
+	AND (to_tsvector('simple', publisher) @@ plainto_tsquery('simple', $5) OR $5 = '') 
+	AND (
+		CASE 
+			WHEN $6 > 0 AND $7 = 0 THEN year BETWEEN $6 AND EXTRACT(YEAR FROM CURRENT_DATE)
+			WHEN ($6 = 0 AND $7 > 0) OR ($6 > 0 AND $7 > 0) THEN year BETWEEN $6 AND $7
+			ELSE year BETWEEN 1900 AND EXTRACT(YEAR FROM CURRENT_DATE)
+		END
+	)
+	AND (language ILIKE ANY($8) OR $8 = '{}') 
+	AND (extension ILIKE ANY($9) OR $9 = '{}')
+	ORDER BY %s %s, id ASC`, filters.sortColumn(), filters.sortDirection())
 	args := []interface{}{title, pq.Array(author), isbn10, isbn13, publisher, fromYear, toYear, pq.Array(language), pq.Array(extension)}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -222,7 +231,10 @@ func (m BookModel) GetAll(title string, author []string, isbn10, isbn13, publish
 			&book.Isbn13,
 			&book.CoverPath,
 			&book.S3FileKey,
-			&book.AdditionalInfo,
+			&book.Filename,
+			&book.Extension,
+			&book.Size,
+			&book.Popularity,
 			&book.Version,
 		)
 		if err != nil {
