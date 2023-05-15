@@ -59,7 +59,7 @@ func (app *application) encodeJSON(w http.ResponseWriter, status int, data envel
 	return nil
 }
 
-// encodeJSON de-serializes JSON data in the Go types.
+// decodeJSON de-serializes JSON data into Go types.
 func (app *application) decodeJSON(w http.ResponseWriter, r *http.Request, dst interface{}) error {
 	maxBytes := 1_048_576
 	r.Body = http.MaxBytesReader(w, r.Body, int64(maxBytes))

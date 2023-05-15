@@ -22,5 +22,7 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPatch, "/v1/books/:id/cover", app.updateBookCoverHandler)
 	router.HandlerFunc(http.MethodGet, "/v1/books/:id/download", app.downloadBookHandler)
 
+	router.HandlerFunc(http.MethodPost, "/v1/users", app.registerUserHandler)
+
 	return router
 }

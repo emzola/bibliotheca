@@ -11,13 +11,11 @@ import (
 	"github.com/lib/pq"
 )
 
-// The Book struct contains the data fields for a book. The database expects NULL values
-// for some fields when first creating a book - for such fields, we use a pointer type
-// so that we can scan null values from the database into the Book struct.
+// The Book struct contains the data fields for a book.
 type Book struct {
-	ID int64 `json:"id"`
-	// UserID         int64             `json:"-"`
-	CreatedAt   time.Time `json:"-"`
+	ID          int64     `json:"id"`
+	UserID      int64     `json:"-"`
+	CreatedAt   time.Time `json:"created_at"`
 	Title       string    `json:"title"`
 	Description string    `json:"description,omitempty"`
 	Author      []string  `json:"author,omitempty"`
@@ -65,7 +63,7 @@ type BookModel struct {
 
 func (m BookModel) Insert(book *Book) error {
 	query := `
-		INSERT INTO book (title, s3_file_key, fname, extension, size)	
+		INSERT INTO books (title, s3_file_key, fname, extension, size)	
 		VALUES ($1, $2, $3, $4, $5)
 	  	RETURNING id, created_at, version`
 	args := []interface{}{book.Title, book.S3FileKey, book.Filename, book.Extension, book.Size}
@@ -80,7 +78,7 @@ func (m BookModel) Get(id int64) (*Book, error) {
 	}
 	query := `
 		SELECT id, created_at, title, description, author, category, publisher,	language, series, volume, edition, year, page_count, isbn_10, isbn_13, cover_path, s3_file_key, fname, extension, size, popularity, version
-		FROM book  
+		FROM books 
 		WHERE id = $1`
 	var book Book
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -122,7 +120,7 @@ func (m BookModel) Get(id int64) (*Book, error) {
 
 func (m BookModel) Update(book *Book) error {
 	query := `
-		UPDATE book
+		UPDATE books
 		SET title = $1, description = $2, author = $3, category = $4, publisher = $5, language = $6, series = $7, volume = $8, 
 		edition = $9, year = $10, page_count = $11, isbn_10 = $12, isbn_13 = $13, cover_path = $14, popularity = $15, version = version + 1
 		WHERE id = $16 AND version = $17
@@ -165,7 +163,7 @@ func (m BookModel) Delete(id int64) error {
 		return ErrRecordNotFound
 	}
 	query := `
-		DELETE FROM book
+		DELETE FROM books
 		WHERE id = $1`
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -186,7 +184,7 @@ func (m BookModel) Delete(id int64) error {
 func (m BookModel) GetAll(title string, author []string, isbn10, isbn13, publisher string, fromYear, toYear int, language, extension []string, filters Filters) ([]*Book, Metadata, error) {
 	query := fmt.Sprintf(`
 		SELECT count(*) OVER(), id, created_at, title, description, author, category, publisher, language, series, volume, edition, year, page_count, isbn_10, isbn_13, cover_path, s3_file_key, fname, extension, size, popularity, version
-		FROM book  
+		FROM books  
 		WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', $1) OR $1 = '') 
 		AND (author @> $2 OR $2 = '{}') 
 		AND (LOWER(isbn_10) = LOWER($3) OR $3 = '') 
