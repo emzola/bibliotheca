@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"flag"
 	"os"
+	"strconv"
+	"sync"
 	"time"
 
 	s3Config "github.com/aws/aws-sdk-go-v2/config"
@@ -47,6 +49,7 @@ type application struct {
 	logger *jsonlog.Logger
 	models data.Models
 	mailer mailer.Mailer
+	wg     sync.WaitGroup
 }
 
 func main() {
@@ -61,16 +64,20 @@ func main() {
 	flag.IntVar(&cfg.db.maxIdleConns, "db-max-idle-conns", 25, "PostgreSQL max idle connections")
 	flag.StringVar(&cfg.db.maxIdleTime, "db-max-idle-time", "15m", "PostgreSQL max connection idle time")
 
+	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
+
 	// Read the SMTP server configuration settings into the config struct
-	flag.StringVar(&cfg.smtp.host, "smtp-host", "smtp.mailtrap.io", "SMTP host")
-	flag.IntVar(&cfg.smtp.port, "smtp-port", 2525, "SMTP port")
+	smtpport, err := strconv.Atoi(os.Getenv("SMTPPORT"))
+	if err != nil {
+		logger.PrintError(err, nil)
+	}
+	flag.StringVar(&cfg.smtp.host, "smtp-host", os.Getenv("SMTPHOST"), "SMTP host")
+	flag.IntVar(&cfg.smtp.port, "smtp-port", smtpport, "SMTP port")
 	flag.StringVar(&cfg.smtp.username, "smtp-username", os.Getenv("SMTPUSERNAME"), "SMTP username")
 	flag.StringVar(&cfg.smtp.password, "smtp-password", os.Getenv("SMTPPASSWORD"), "SMTP password")
 	flag.StringVar(&cfg.smtp.sender, "smtp-sender", "Bibliotheca <no-reply@bibliotheca.com>", "SMTP sender")
 
 	flag.Parse()
-
-	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
 
 	// Open database connection
 	db, err := openDB(cfg)
