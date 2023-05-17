@@ -12,12 +12,13 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/emzola/bibliotheca/internal/data"
 	"github.com/emzola/bibliotheca/internal/jsonlog"
+	"github.com/emzola/bibliotheca/internal/mailer"
 	_ "github.com/lib/pq"
 )
 
 const version = "1.0.0"
 
-// A config holds all the configuration settings for the application.
+// The config struct holds all the configuration settings for the application.
 type config struct {
 	port int
 	env  string
@@ -30,14 +31,22 @@ type config struct {
 		maxIdleConns int
 		maxIdleTime  string
 	}
+	smtp struct {
+		host     string
+		port     int
+		username string
+		password string
+		sender   string
+	}
 }
 
-// An application holds the dependencies for our HTTP handlers,
+// The application struct holds the dependencies for our HTTP handlers,
 // helpers and middleware.
 type application struct {
 	config config
 	logger *jsonlog.Logger
 	models data.Models
+	mailer mailer.Mailer
 }
 
 func main() {
@@ -46,10 +55,18 @@ func main() {
 	flag.IntVar(&cfg.port, "port", 4000, "API server port")
 	flag.StringVar(&cfg.env, "env", "development", "Environment(development|staging|production)")
 
+	// Read the database connection pool settings into the config struct
 	flag.StringVar(&cfg.db.dsn, "db-dsn", "", "PostgreSQL DSN")
 	flag.IntVar(&cfg.db.maxOpenConns, "db-max-open-conns", 25, "PostgreSQL max open connections")
 	flag.IntVar(&cfg.db.maxIdleConns, "db-max-idle-conns", 25, "PostgreSQL max idle connections")
 	flag.StringVar(&cfg.db.maxIdleTime, "db-max-idle-time", "15m", "PostgreSQL max connection idle time")
+
+	// Read the SMTP server configuration settings into the config struct
+	flag.StringVar(&cfg.smtp.host, "smtp-host", "smtp.mailtrap.io", "SMTP host")
+	flag.IntVar(&cfg.smtp.port, "smtp-port", 2525, "SMTP port")
+	flag.StringVar(&cfg.smtp.username, "smtp-username", os.Getenv("SMTPUSERNAME"), "SMTP username")
+	flag.StringVar(&cfg.smtp.password, "smtp-password", os.Getenv("SMTPPASSWORD"), "SMTP password")
+	flag.StringVar(&cfg.smtp.sender, "smtp-sender", "Bibliotheca <no-reply@bibliotheca.com>", "SMTP sender")
 
 	flag.Parse()
 
@@ -72,6 +89,7 @@ func main() {
 		config: cfg,
 		logger: logger,
 		models: *data.NewModels(db),
+		mailer: mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
 	}
 
 	// Start the HTTP server
