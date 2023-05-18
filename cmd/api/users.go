@@ -52,7 +52,7 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		app.serverErrorResponse(w, r, err)
 		return
 	}
-	// Send the welcome email in a background goroutine to speed up response time
+	// Send welcome email in a background goroutine to speed up response time
 	app.background(func() {
 		data := map[string]string{
 			"userName":        strings.Split(user.Name, " ")[0],

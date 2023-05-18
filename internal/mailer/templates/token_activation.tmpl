@@ -1,0 +1,35 @@
+{{define "subject"}}Activate your Bibliotheca account{{end}}
+
+{{define "plainBody"}}
+Hi, {{.userName}}.
+
+To activate your Bibliotheca account please click the following link:
+
+https://bibliotheca.com/users/activated?token={{.activationToken}}
+
+Please note that this link will expire in 3 days and can only be used once.
+
+Thanks,
+
+The Bibliotheca Team
+{{end}}
+
+{{define "htmlBody"}}
+<!doctype html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+</head>
+<body>
+    <p>Hi, {{.userName}}.</p>
+    <p>To activate your Bibliotheca account please click the following link:</p>
+    <pre>
+        <a href="https://bibliotheca.com/users/activate?token={{.activationToken}}">https://bibliotheca.com/users/activate?token={{.activationToken}}</a>
+    </pre>
+    <p>Please note that this link will expire in 3 days and can only be used once.<p>
+    <p>Thanks,</p>
+    <p>The Bibliotheca Team</p>
+</body>
+</html>
+{{end}}
