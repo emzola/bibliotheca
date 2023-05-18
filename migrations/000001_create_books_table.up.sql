@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS books (
     id bigserial PRIMARY KEY,
-    user_id bigserial NOT NULL,
+    user_id bigint NOT NULL REFERENCES users ON DELETE CASCADE,
     created_at timestamp(0) with time zone NOT NULL DEFAULT NOW(),
     title text NOT NULL,
     description text NOT NULL DEFAULT '',

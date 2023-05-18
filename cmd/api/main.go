@@ -85,6 +85,7 @@ func main() {
 		logger.PrintFatal(err, nil)
 	}
 	defer db.Close()
+	logger.PrintInfo("database connection pool established", nil)
 
 	// Initialize AWS S3 client
 	err = aws3Config(&cfg)

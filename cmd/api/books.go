@@ -52,7 +52,7 @@ func (app *application) createBookHandler(w http.ResponseWriter, r *http.Request
 	book.Filename = fileHeader.Filename
 	book.Extension = strings.ToUpper(strings.TrimPrefix(filepath.Ext(fileHeader.Filename), "."))
 	book.Size = fileHeader.Size
-	err = app.models.Book.Insert(book)
+	err = app.models.Books.Insert(book)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -71,7 +71,7 @@ func (app *application) showBookHandler(w http.ResponseWriter, r *http.Request) 
 		app.notFoundResponse(w, r)
 		return
 	}
-	book, err := app.models.Book.Get(id)
+	book, err := app.models.Books.Get(id)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
@@ -119,7 +119,7 @@ func (app *application) listBooksHandler(w http.ResponseWriter, r *http.Request)
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
-	books, metadata, err := app.models.Book.GetAll(input.Title, input.Author, input.Isbn10, input.Isbn13, input.Publisher, input.FromYear, input.ToYear, input.Language, input.Extension, input.Filters)
+	books, metadata, err := app.models.Books.GetAll(input.Title, input.Author, input.Isbn10, input.Isbn13, input.Publisher, input.FromYear, input.ToYear, input.Language, input.Extension, input.Filters)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -136,7 +136,7 @@ func (app *application) updateBookHandler(w http.ResponseWriter, r *http.Request
 		app.notFoundResponse(w, r)
 		return
 	}
-	book, err := app.models.Book.Get(id)
+	book, err := app.models.Books.Get(id)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
@@ -217,7 +217,7 @@ func (app *application) updateBookHandler(w http.ResponseWriter, r *http.Request
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
-	err = app.models.Book.Update(book)
+	err = app.models.Books.Update(book)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrEditConflict):
@@ -239,7 +239,7 @@ func (app *application) updateBookCoverHandler(w http.ResponseWriter, r *http.Re
 		app.notFoundResponse(w, r)
 		return
 	}
-	book, err := app.models.Book.Get(id)
+	book, err := app.models.Books.Get(id)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
@@ -283,7 +283,7 @@ func (app *application) updateBookCoverHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 	book.CoverPath = s3CoverPath
-	err = app.models.Book.Update(book)
+	err = app.models.Books.Update(book)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrEditConflict):
@@ -305,7 +305,7 @@ func (app *application) downloadBookHandler(w http.ResponseWriter, r *http.Reque
 		app.notFoundResponse(w, r)
 		return
 	}
-	book, err := app.models.Book.Get(id)
+	book, err := app.models.Books.Get(id)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
@@ -327,7 +327,7 @@ func (app *application) deleteBookHandler(w http.ResponseWriter, r *http.Request
 		app.notFoundResponse(w, r)
 		return
 	}
-	err = app.models.Book.Delete(id)
+	err = app.models.Books.Delete(id)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):

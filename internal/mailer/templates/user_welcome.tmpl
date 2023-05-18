@@ -1,9 +1,18 @@
 {{define "subject"}}Welcome to Bibliotheca!{{end}}
 
 {{define "plainBody"}}
-Hi,
+Hi, {{.userName}}.
+
 Thanks for signing up for a Bibliotheca account. We're excited to have you on board!
-Cheers,
+
+To activate your Bibliotheca account please click the following link:
+
+https://bibliotheca.com/users/activate?token={{.activationToken}}
+
+Please note that this link will expire in 3 days and can only be used once.
+
+Thanks,
+
 The Bibliotheca Team
 {{end}}
 
@@ -15,9 +24,14 @@ The Bibliotheca Team
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 </head>
 <body>
-    <p>Hi,</p>
+    <p>Hi, {{.userName}}.</p>
     <p>Thanks for signing up for a Bibliotheca account. We're excited to have you on board!</p>
-    <p>Cheers,</p>
+    <p>To activate your Bibliotheca account please click the following link:</p>
+    <pre>
+        <a href="https://bibliotheca.com/users/activate?token={{.activationToken}}">https://bibliotheca.com/users/activate?token={{.activationToken}}</a>
+    </pre>
+    <p>Please note that this link will expire in 3 days and can only be used once.<p>
+    <p>Thanks,</p>
     <p>The Bibliotheca Team</p>
 </body>
 </html>

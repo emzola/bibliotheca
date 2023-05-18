@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -16,12 +15,10 @@ func (app *application) serve() error {
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", app.config.port),
 		Handler:      app.routes(),
-		ErrorLog:     log.New(app.logger, "", 0),
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 30 * time.Second,
 	}
-
 	// Graceful shutdown
 	shutdownError := make(chan error)
 	go func() {
@@ -43,20 +40,22 @@ func (app *application) serve() error {
 		app.wg.Wait()
 		shutdownError <- nil
 	}()
-
 	// Start server and listen for incoming connections
 	app.logger.PrintInfo("starting server", map[string]string{
 		"addr": srv.Addr,
 		"env":  app.config.env,
 	})
 	err := srv.ListenAndServe()
-	if errors.Is(err, http.ErrServerClosed) {
+	if !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
 	err = <-shutdownError
 	if err != nil {
 		return err
 	}
-	app.logger.PrintInfo("stopped server", map[string]string{"addr": srv.Addr})
+	app.logger.PrintInfo("stopped server", map[string]string{
+		"addr": srv.Addr,
+	})
+
 	return nil
 }

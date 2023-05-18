@@ -56,7 +56,7 @@ func ValidateBook(v *validator.Validator, book *Book) {
 	v.Check(len(book.Isbn13) <= 17, "isbn13", "must not be more than 17 characters")
 }
 
-// BookModel wraps a sql.DB connection pool for Book.
+// The BookModel struct wraps a sql.DB connection pool for Book.
 type BookModel struct {
 	DB *sql.DB
 }
