@@ -13,6 +13,9 @@ import (
 
 var ErrDuplicateEmail = errors.New("duplicate email")
 
+// Create an anonymous user variable
+var AnonymousUser = &User{}
+
 // The User struct contains the data fields for a user.
 type User struct {
 	ID        int64     `json:"id"`
@@ -22,6 +25,11 @@ type User struct {
 	Password  password  `json:"-"`
 	Activated bool      `json:"activated"`
 	Version   int32     `json:"-"`
+}
+
+// Check if a user instance is the anonymous user
+func (u *User) IsAnonymous() bool {
+	return u == AnonymousUser
 }
 
 // The password struct contains the plaintext and hashed versions of the password
