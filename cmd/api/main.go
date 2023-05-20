@@ -15,6 +15,7 @@ import (
 	"github.com/emzola/bibliotheca/internal/data"
 	"github.com/emzola/bibliotheca/internal/jsonlog"
 	"github.com/emzola/bibliotheca/internal/mailer"
+	"github.com/jellydator/ttlcache/v3"
 	_ "github.com/lib/pq"
 )
 
@@ -50,6 +51,7 @@ type application struct {
 	models data.Models
 	mailer mailer.Mailer
 	wg     sync.WaitGroup
+	cache  *ttlcache.Cache[string, int64]
 }
 
 func main() {
@@ -93,11 +95,16 @@ func main() {
 		logger.PrintError(err, nil)
 	}
 
+	// In-memory caching with a ttl of 30 minutes
+	cache := ttlcache.New(ttlcache.WithTTL[string, int64](30 * time.Minute))
+	go cache.Start()
+
 	app := &application{
 		config: cfg,
 		logger: logger,
 		models: *data.NewModels(db),
 		mailer: mailer.New(cfg.smtp.host, cfg.smtp.port, cfg.smtp.username, cfg.smtp.password, cfg.smtp.sender),
+		cache:  cache,
 	}
 
 	// Start the HTTP server

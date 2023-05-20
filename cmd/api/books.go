@@ -47,6 +47,7 @@ func (app *application) createBookHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 	book := &data.Book{}
+	book.UserID = app.contextGetUser(r).ID
 	book.Title = strings.TrimSuffix(fileHeader.Filename, filepath.Ext(fileHeader.Filename))
 	book.S3FileKey = s3FileKey
 	book.Filename = fileHeader.Filename

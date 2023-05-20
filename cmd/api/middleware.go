@@ -7,8 +7,10 @@ import (
 
 	"github.com/emzola/bibliotheca/internal/data"
 	"github.com/emzola/bibliotheca/internal/validator"
+	"github.com/jellydator/ttlcache/v3"
 )
 
+// authenticate middleware authenticates users. It returns an authenticated or anonymous user.
 func (app *application) authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Vary", "Authorization")
@@ -42,4 +44,69 @@ func (app *application) authenticate(next http.Handler) http.Handler {
 		r = app.contextSetUser(r, user)
 		next.ServeHTTP(w, r)
 	})
+}
+
+// requireAuthenticatedUser middleware checks that a user is not anonymous.
+func (app *application) requireAuthenticatedUser(next http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user := app.contextGetUser(r)
+		if user.IsAnonymous() {
+			app.authenticationRequiredResponse(w, r)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// requireActivatedUser middleware checks that a user is both authenticated and activated.
+func (app *application) requireActivatedUser(next http.HandlerFunc) http.HandlerFunc {
+	fn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user := app.contextGetUser(r)
+		if !user.Activated {
+			app.inactiveAccountResponse(w, r)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+	return app.requireAuthenticatedUser(fn)
+}
+
+// requireBookWritePermission middleware checks that a user is authenticated, activated and is the owner of the resource.
+func (app *application) requireBookWritePermission(next http.HandlerFunc) http.HandlerFunc {
+	fn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Get user from request context
+		user := app.contextGetUser(r)
+		// Check whether book's UserID field is found in cache
+		cache := app.cache
+		bookUserID := cache.Get("bookUserID")
+		if bookUserID == nil {
+			// If book's UserID field is not found, fetch it from the database and set to cache
+			id, err := app.readIDParam(r)
+			if err != nil || id < 1 {
+				app.notFoundResponse(w, r)
+				return
+			}
+			book, err := app.models.Books.Get(id)
+			if err != nil {
+				switch {
+				case errors.Is(err, data.ErrRecordNotFound):
+					app.notFoundResponse(w, r)
+				default:
+					app.serverErrorResponse(w, r, err)
+				}
+				return
+			}
+			cache.Set("bookUserID", book.UserID, ttlcache.DefaultTTL)
+			// Retrieve book's UserID field from the cache that has just been set
+			bookUserID = cache.Get("bookUserID")
+		}
+		// Compare user's ID and book's UserID field in cache. If they aren't the same,
+		// forbid further action
+		if user.ID != bookUserID.Value() {
+			app.notPermittedResponse(w, r)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+	return app.requireActivatedUser(fn)
 }

@@ -14,7 +14,7 @@ import (
 // The Book struct contains the data fields for a book.
 type Book struct {
 	ID          int64     `json:"id"`
-	UserID      int64     `json:"-"`
+	UserID      int64     `json:"user_id"`
 	CreatedAt   time.Time `json:"created_at"`
 	Title       string    `json:"title"`
 	Description string    `json:"description,omitempty"`
@@ -63,10 +63,10 @@ type BookModel struct {
 
 func (m BookModel) Insert(book *Book) error {
 	query := `
-		INSERT INTO books (title, s3_file_key, fname, extension, size)	
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO books (user_id, title, s3_file_key, fname, extension, size)	
+		VALUES ($1, $2, $3, $4, $5, $6)
 	  	RETURNING id, created_at, version`
-	args := []interface{}{book.Title, book.S3FileKey, book.Filename, book.Extension, book.Size}
+	args := []interface{}{book.UserID, book.Title, book.S3FileKey, book.Filename, book.Extension, book.Size}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	return m.DB.QueryRowContext(ctx, query, args...).Scan(&book.ID, &book.CreatedAt, &book.Version)
@@ -77,7 +77,7 @@ func (m BookModel) Get(id int64) (*Book, error) {
 		return nil, ErrRecordNotFound
 	}
 	query := `
-		SELECT id, created_at, title, description, author, category, publisher,	language, series, volume, edition, year, page_count, isbn_10, isbn_13, cover_path, s3_file_key, fname, extension, size, popularity, version
+		SELECT id, user_id, created_at, title, description, author, category, publisher, language, series, volume, edition, year, page_count, isbn_10, isbn_13, cover_path, s3_file_key, fname, extension, size, popularity, version
 		FROM books 
 		WHERE id = $1`
 	var book Book
@@ -85,6 +85,7 @@ func (m BookModel) Get(id int64) (*Book, error) {
 	defer cancel()
 	err := m.DB.QueryRowContext(ctx, query, id).Scan(
 		&book.ID,
+		&book.UserID,
 		&book.CreatedAt,
 		&book.Title,
 		&book.Description,
@@ -183,7 +184,7 @@ func (m BookModel) Delete(id int64) error {
 
 func (m BookModel) GetAll(title string, author []string, isbn10, isbn13, publisher string, fromYear, toYear int, language, extension []string, filters Filters) ([]*Book, Metadata, error) {
 	query := fmt.Sprintf(`
-		SELECT count(*) OVER(), id, created_at, title, description, author, category, publisher, language, series, volume, edition, year, page_count, isbn_10, isbn_13, cover_path, s3_file_key, fname, extension, size, popularity, version
+		SELECT count(*) OVER(), id, user_id, created_at, title, description, author, category, publisher, language, series, volume, edition, year, page_count, isbn_10, isbn_13, cover_path, s3_file_key, fname, extension, size, popularity, version
 		FROM books  
 		WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', $1) OR $1 = '') 
 		AND (author @> $2 OR $2 = '{}') 
@@ -230,6 +231,7 @@ func (m BookModel) GetAll(title string, author []string, isbn10, isbn13, publish
 		err := rows.Scan(
 			&totalRecords,
 			&book.ID,
+			&book.UserID,
 			&book.CreatedAt,
 			&book.Title,
 			&book.Description,
