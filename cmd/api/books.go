@@ -67,7 +67,7 @@ func (app *application) createBookHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (app *application) showBookHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := app.readIDParam(r)
+	id, err := app.readIDParam(r, "bookId")
 	if err != nil {
 		app.notFoundResponse(w, r)
 		return
@@ -132,7 +132,7 @@ func (app *application) listBooksHandler(w http.ResponseWriter, r *http.Request)
 }
 
 func (app *application) updateBookHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := app.readIDParam(r)
+	id, err := app.readIDParam(r, "bookId")
 	if err != nil || id < 1 {
 		app.notFoundResponse(w, r)
 		return
@@ -235,7 +235,7 @@ func (app *application) updateBookHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (app *application) updateBookCoverHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := app.readIDParam(r)
+	id, err := app.readIDParam(r, "bookId")
 	if err != nil || id < 1 {
 		app.notFoundResponse(w, r)
 		return
@@ -301,7 +301,7 @@ func (app *application) updateBookCoverHandler(w http.ResponseWriter, r *http.Re
 }
 
 func (app *application) downloadBookHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := app.readIDParam(r)
+	id, err := app.readIDParam(r, "bookId")
 	if err != nil || id < 1 {
 		app.notFoundResponse(w, r)
 		return
@@ -323,7 +323,7 @@ func (app *application) downloadBookHandler(w http.ResponseWriter, r *http.Reque
 }
 
 func (app *application) deleteBookHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := app.readIDParam(r)
+	id, err := app.readIDParam(r, "bookId")
 	if err != nil {
 		app.notFoundResponse(w, r)
 		return

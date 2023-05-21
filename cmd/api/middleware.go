@@ -71,8 +71,8 @@ func (app *application) requireActivatedUser(next http.HandlerFunc) http.Handler
 	return app.requireAuthenticatedUser(fn)
 }
 
-// requireBookWritePermission middleware checks that a user is authenticated, activated and is the owner of the resource.
-func (app *application) requireBookWritePermission(next http.HandlerFunc) http.HandlerFunc {
+// requireBookOwnerPermission middleware checks that a user is authenticated, activated and is the owner of the book.
+func (app *application) requireBookOwnerPermission(next http.HandlerFunc) http.HandlerFunc {
 	fn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Get user from request context
 		user := app.contextGetUser(r)
@@ -81,7 +81,7 @@ func (app *application) requireBookWritePermission(next http.HandlerFunc) http.H
 		bookUserID := cache.Get("bookUserID")
 		if bookUserID == nil {
 			// If book's UserID field is not found, fetch it from the database and set to cache
-			id, err := app.readIDParam(r)
+			id, err := app.readIDParam(r, "bookId")
 			if err != nil || id < 1 {
 				app.notFoundResponse(w, r)
 				return
@@ -103,6 +103,46 @@ func (app *application) requireBookWritePermission(next http.HandlerFunc) http.H
 		// Compare user's ID and book's UserID field in cache. If they aren't the same,
 		// forbid further action
 		if user.ID != bookUserID.Value() {
+			app.notPermittedResponse(w, r)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+	return app.requireActivatedUser(fn)
+}
+
+// requireReviewOwnerPermission middleware checks that a user is authenticated, activated and is the owner of the review.
+func (app *application) requireReviewOwnerPermission(next http.HandlerFunc) http.HandlerFunc {
+	fn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Get user from request context
+		user := app.contextGetUser(r)
+		// Check whether review's UserID field is found in cache
+		cache := app.cache
+		reviewUserID := cache.Get("reviewUserID")
+		if reviewUserID == nil {
+			// If review's UserID field is not found, fetch it from the database and set to cache
+			id, err := app.readIDParam(r, "reviewId")
+			if err != nil || id < 1 {
+				app.notFoundResponse(w, r)
+				return
+			}
+			review, err := app.models.Reviews.Get(id)
+			if err != nil {
+				switch {
+				case errors.Is(err, data.ErrRecordNotFound):
+					app.notFoundResponse(w, r)
+				default:
+					app.serverErrorResponse(w, r, err)
+				}
+				return
+			}
+			cache.Set("reviewUserID", review.UserID, ttlcache.DefaultTTL)
+			// Retrieve review's UserID field from the cache that has just been set
+			reviewUserID = cache.Get("reviewUserID")
+		}
+		// Compare user's ID and review's UserID field in cache. If they aren't the same,
+		// forbid further action
+		if user.ID != reviewUserID.Value() {
 			app.notPermittedResponse(w, r)
 			return
 		}

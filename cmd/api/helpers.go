@@ -34,9 +34,9 @@ const (
 type envelope map[string]interface{}
 
 // readIDParam pulls the url id parameter from the request and returns it or an error if any.
-func (a *application) readIDParam(r *http.Request) (int64, error) {
+func (a *application) readIDParam(r *http.Request, idParam string) (int64, error) {
 	params := httprouter.ParamsFromContext(r.Context())
-	id, err := strconv.ParseInt(params.ByName("id"), 10, 64)
+	id, err := strconv.ParseInt(params.ByName(idParam), 10, 64)
 	if err != nil {
 		return 0, err
 	}
