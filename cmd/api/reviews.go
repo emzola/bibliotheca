@@ -10,11 +10,26 @@ import (
 )
 
 func (app *application) createReviewHandler(w http.ResponseWriter, r *http.Request) {
+	// Check whether a review from user already exists.
+	// If it does, do not process request
+	bookId, err := app.readIDParam(r, "bookId")
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+	user := app.contextGetUser(r)
+	exists := app.models.Reviews.RecordExistsForUser(bookId, user.ID)
+	if exists {
+		app.recordAlreadyExistsResponse(w, r)
+		return
+	}
+	// From this point, create review as usual
+	// since user does not have any record
 	var input struct {
 		Rating  int8   `json:"rating"`
 		Comment string `json:"comment"`
 	}
-	err := app.decodeJSON(w, r, &input)
+	err = app.decodeJSON(w, r, &input)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return
@@ -34,7 +49,6 @@ func (app *application) createReviewHandler(w http.ResponseWriter, r *http.Reque
 		}
 		return
 	}
-	user := app.contextGetUser(r)
 	review := &data.Review{}
 	review.BookID = book.ID
 	review.UserID = user.ID
@@ -135,67 +149,26 @@ func (app *application) updateReviewHandler(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-func (app *application) upvoteReviewHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := app.readIDParam(r, "reviewId")
-	if err != nil {
-		app.notFoundResponse(w, r)
+func (app *application) listReviewsHandler(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Filters data.Filters
+	}
+	v := validator.New()
+	qs := r.URL.Query()
+	input.Filters.Page = app.readInt(qs, "page", 1, v)
+	input.Filters.PageSize = app.readInt(qs, "page_size", 10, v)
+	input.Filters.Sort = app.readString(qs, "sort", "id")
+	input.Filters.SortSafeList = []string{"id", "vote", "-id", "-vote"}
+	if data.ValidateFilters(v, input.Filters); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
-	review, err := app.models.Reviews.Get(id)
-	if err != nil {
-		switch {
-		case errors.Is(err, data.ErrRecordNotFound):
-			app.notFoundResponse(w, r)
-		default:
-			app.serverErrorResponse(w, r, err)
-		}
-		return
-	}
-	review.Vote += 1
-	err = app.models.Reviews.Update(review)
-	if err != nil {
-		switch {
-		case errors.Is(err, data.ErrEditConflict):
-			app.editConflictResponse(w, r)
-		default:
-			app.serverErrorResponse(w, r, err)
-		}
-		return
-	}
-	err = app.encodeJSON(w, http.StatusOK, envelope{"review": review}, nil)
+	ratings, reviews, metadata, err := app.models.Reviews.GetAll(input.Filters)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
-	}
-}
-
-func (app *application) downvoteReviewHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := app.readIDParam(r, "reviewId")
-	if err != nil {
-		app.notFoundResponse(w, r)
 		return
 	}
-	review, err := app.models.Reviews.Get(id)
-	if err != nil {
-		switch {
-		case errors.Is(err, data.ErrRecordNotFound):
-			app.notFoundResponse(w, r)
-		default:
-			app.serverErrorResponse(w, r, err)
-		}
-		return
-	}
-	review.Vote -= 1
-	err = app.models.Reviews.Update(review)
-	if err != nil {
-		switch {
-		case errors.Is(err, data.ErrEditConflict):
-			app.editConflictResponse(w, r)
-		default:
-			app.serverErrorResponse(w, r, err)
-		}
-		return
-	}
-	err = app.encodeJSON(w, http.StatusOK, envelope{"review": review}, nil)
+	err = app.encodeJSON(w, http.StatusOK, envelope{"ratings": ratings, "reviews": reviews, "metadata": metadata}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
@@ -218,6 +191,78 @@ func (app *application) deleteReviewHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	err = app.encodeJSON(w, http.StatusOK, envelope{"message": "review deleted successfully"}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) upvoteReviewHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readIDParam(r, "reviewId")
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+	review, err := app.models.Reviews.Get(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	user := app.contextGetUser(r)
+	if review.UserID != user.ID {
+		review.Vote += 1
+	}
+	err = app.models.Reviews.Update(review)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrEditConflict):
+			app.editConflictResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	err = app.encodeJSON(w, http.StatusOK, envelope{"review": review}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) downvoteReviewHandler(w http.ResponseWriter, r *http.Request) {
+	user := app.contextGetUser(r)
+	id, err := app.readIDParam(r, "reviewId")
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+	review, err := app.models.Reviews.Get(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	if review.UserID != user.ID {
+		review.Vote -= 1
+	}
+	err = app.models.Reviews.Update(review)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrEditConflict):
+			app.editConflictResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	err = app.encodeJSON(w, http.StatusOK, envelope{"review": review}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
