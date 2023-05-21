@@ -135,6 +135,72 @@ func (app *application) updateReviewHandler(w http.ResponseWriter, r *http.Reque
 	}
 }
 
+func (app *application) upvoteReviewHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readIDParam(r, "reviewId")
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+	review, err := app.models.Reviews.Get(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	review.Vote += 1
+	err = app.models.Reviews.Update(review)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrEditConflict):
+			app.editConflictResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	err = app.encodeJSON(w, http.StatusOK, envelope{"review": review}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) downvoteReviewHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readIDParam(r, "reviewId")
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+	review, err := app.models.Reviews.Get(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	review.Vote -= 1
+	err = app.models.Reviews.Update(review)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrEditConflict):
+			app.editConflictResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	err = app.encodeJSON(w, http.StatusOK, envelope{"review": review}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
 func (app *application) deleteReviewHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDParam(r, "reviewId")
 	if err != nil {

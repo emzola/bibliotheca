@@ -77,10 +77,10 @@ func (m ReviewModel) Get(id int64) (*Review, error) {
 func (m ReviewModel) Update(review *Review) error {
 	query := `
 		UPDATE reviews
-		SET rating = $1, comment = $2, version = version + 1
-		WHERE id = $3 AND version = $4
+		SET rating = $1, comment = $2, vote = $3, version = version + 1
+		WHERE id = $4 AND version = $5
 		RETURNING version`
-	args := []interface{}{review.Rating, review.Comment, review.ID, review.Version}
+	args := []interface{}{review.Rating, review.Comment, review.Vote, review.ID, review.Version}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&review.Version)
