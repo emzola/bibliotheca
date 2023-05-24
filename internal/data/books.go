@@ -34,7 +34,7 @@ type Book struct {
 	Filename    string    `json:"filename"`
 	Extension   string    `json:"extension"`
 	Size        int64     `json:"size"`
-	Popularity  int8      `json:"popularity,omitempty"`
+	Popularity  float64   `json:"popularity,omitempty"`
 	Version     int32     `json:"-"`
 }
 

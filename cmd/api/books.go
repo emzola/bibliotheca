@@ -164,7 +164,7 @@ func (app *application) updateBookHandler(w http.ResponseWriter, r *http.Request
 		PageCount   *int32   `json:"page_count,omitempty"`
 		Isbn10      *string  `json:"isbn_10,omitempty"`
 		Isbn13      *string  `json:"isbn_13,omitempty"`
-		Popularity  *int8    `json:"popularity,omitempty"`
+		Popularity  *float64 `json:"popularity,omitempty"`
 	}
 	err = app.decodeJSON(w, r, &input)
 	if err != nil {

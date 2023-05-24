@@ -20,6 +20,6 @@ CREATE TABLE IF NOT EXISTS books (
     fname text NOT NULL,
     extension text NOT NULL, 
     size integer NOT NULL,
-    popularity integer NOT NULL DEFAULT 0,
+    popularity numeric(2, 1) NOT NULL DEFAULT 0,
     version integer NOT NULL DEFAULT 1
 );

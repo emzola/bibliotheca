@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"math"
 	"strconv"
 	"time"
 
@@ -13,13 +14,13 @@ import (
 
 // The Rating struct contains the data fields for a book's review ratings.
 type Rating struct {
-	FiveStars  int64
-	FourStars  int64
-	ThreeStars int64
-	TwoStars   int64
-	OneStar    int64
-	Average    float64
-	Total      int64
+	FiveStars  int64   `json:"fivestars"`
+	FourStars  int64   `json:"fourstars"`
+	ThreeStars int64   `json:"threestars"`
+	TwoStars   int64   `json:"twostars"`
+	OneStar    int64   `json:"onestar"`
+	Average    float64 `json:"average"`
+	Total      int64   `json:"total"`
 }
 
 // The Review struct contains the data fields for a book review.
@@ -131,7 +132,7 @@ func (m ReviewModel) Delete(id int64) error {
 	return nil
 }
 
-func (m ReviewModel) GetAll(filters Filters) (*Rating, []*Review, Metadata, error) {
+func (m ReviewModel) GetAll(filters Filters) (Rating, []*Review, Metadata, error) {
 	query := fmt.Sprintf(`
 		SELECT count(*) OVER(), id, book_id, user_id, created_at, rating, comment, vote, version
 		FROM reviews  
@@ -143,10 +144,10 @@ func (m ReviewModel) GetAll(filters Filters) (*Rating, []*Review, Metadata, erro
 	defer cancel()
 	rows, err := m.DB.QueryContext(ctx, query, args...)
 	if err != nil {
-		return nil, nil, Metadata{}, err
+		return Rating{}, nil, Metadata{}, err
 	}
 	defer rows.Close()
-	ratings := &Rating{}
+	ratings := Rating{}
 	sumRatings := int64(0)
 	totalRecords := 0
 	reviews := []*Review{}
@@ -164,7 +165,7 @@ func (m ReviewModel) GetAll(filters Filters) (*Rating, []*Review, Metadata, erro
 			&review.Version,
 		)
 		if err != nil {
-			return nil, nil, Metadata{}, err
+			return Rating{}, nil, Metadata{}, err
 		}
 		switch review.Rating {
 		case 5:
@@ -182,14 +183,19 @@ func (m ReviewModel) GetAll(filters Filters) (*Rating, []*Review, Metadata, erro
 		reviews = append(reviews, &review)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, nil, Metadata{}, err
+		return Rating{}, nil, Metadata{}, err
 	}
 	avgRatingString := fmt.Sprintf("%.1f", float64(sumRatings)/float64(totalRecords))
 	avgRating, err := strconv.ParseFloat(avgRatingString, 64)
 	if err != nil {
-		return nil, nil, Metadata{}, err
+		return Rating{}, nil, Metadata{}, err
 	}
-	ratings.Average = avgRating
+	// Because averageRating calculation could result in NAN,
+	// check that it isn't NAN before updating rating's average.
+	// This ensures that JSON encoding works without NAN error
+	if !math.IsNaN(avgRating) {
+		ratings.Average = avgRating
+	}
 	ratings.Total = int64(totalRecords)
 	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
 	return ratings, reviews, metadata, nil
@@ -215,4 +221,61 @@ func (m ReviewModel) RecordExistsForUser(bookId, userId int64) bool {
 		&review.Version,
 	)
 	return !errors.Is(err, sql.ErrNoRows)
+}
+
+func (m ReviewModel) GetRatings() (Rating, error) {
+	query := `
+		SELECT id, rating
+		FROM reviews  
+		ORDER BY id ASC`
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	rows, err := m.DB.QueryContext(ctx, query)
+	if err != nil {
+		return Rating{}, err
+	}
+	defer rows.Close()
+	ratings := Rating{}
+	sumRatings := int64(0)
+	totalRecords := 0
+	for rows.Next() {
+		var review Review
+		err := rows.Scan(
+			&review.ID,
+			&review.Rating,
+		)
+		if err != nil {
+			return Rating{}, err
+		}
+		switch review.Rating {
+		case 5:
+			ratings.FiveStars++
+		case 4:
+			ratings.FourStars++
+		case 3:
+			ratings.ThreeStars++
+		case 2:
+			ratings.TwoStars++
+		case 1:
+			ratings.OneStar++
+		}
+		sumRatings += int64(review.Rating)
+		totalRecords++
+	}
+	if err = rows.Err(); err != nil {
+		return Rating{}, err
+	}
+	avgRatingString := fmt.Sprintf("%.1f", float64(sumRatings)/float64(totalRecords))
+	avgRating, err := strconv.ParseFloat(avgRatingString, 64)
+	if err != nil {
+		return Rating{}, err
+	}
+	// Because averageRating calculation could result in NAN,
+	// check that it isn't NAN before updating rating's average.
+	// This ensures that JSON encoding works without NAN error
+	if !math.IsNaN(avgRating) {
+		ratings.Average = avgRating
+	}
+	ratings.Total = int64(totalRecords)
+	return ratings, nil
 }

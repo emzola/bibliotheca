@@ -10,8 +10,8 @@ import (
 )
 
 func (app *application) createReviewHandler(w http.ResponseWriter, r *http.Request) {
-	// Check whether a review from user already exists.
-	// If it does, do not process request
+	// First check whether a review from user already exists.
+	// If it does, do not process further create request
 	bookId, err := app.readIDParam(r, "bookId")
 	if err != nil {
 		app.notFoundResponse(w, r)
@@ -23,8 +23,8 @@ func (app *application) createReviewHandler(w http.ResponseWriter, r *http.Reque
 		app.recordAlreadyExistsResponse(w, r)
 		return
 	}
-	// From this point, create review as usual
-	// since user does not have any record
+	// From this point, create review as usual since user
+	// does not have any review record
 	var input struct {
 		Rating  int8   `json:"rating"`
 		Comment string `json:"comment"`
@@ -34,12 +34,7 @@ func (app *application) createReviewHandler(w http.ResponseWriter, r *http.Reque
 		app.badRequestResponse(w, r, err)
 		return
 	}
-	id, err := app.readIDParam(r, "bookId")
-	if err != nil {
-		app.notFoundResponse(w, r)
-		return
-	}
-	book, err := app.models.Books.Get(id)
+	book, err := app.models.Books.Get(bookId)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
@@ -64,6 +59,19 @@ func (app *application) createReviewHandler(w http.ResponseWriter, r *http.Reque
 		app.serverErrorResponse(w, r, err)
 		return
 	}
+	// Get ratings and Update the popularity field of a book
+	ratings, err := app.models.Reviews.GetRatings()
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	book.Popularity = ratings.Average
+	err = app.models.Books.Update(book)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	// Set location header for the newly created review and encode it to JSON
 	headers := make(http.Header)
 	headers.Set("Location", fmt.Sprintf("/v1/books/%d/reviews/%d", book.ID, review.ID))
 	err = app.encodeJSON(w, http.StatusCreated, envelope{"Review": review}, headers)
@@ -143,6 +151,33 @@ func (app *application) updateReviewHandler(w http.ResponseWriter, r *http.Reque
 		}
 		return
 	}
+	// Get ratings and Update the popularity field of a book
+	bookId, err := app.readIDParam(r, "bookId")
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+	book, err := app.models.Books.Get(bookId)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	rating, err := app.models.Reviews.GetRatings()
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	book.Popularity = rating.Average
+	err = app.models.Books.Update(book)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
 	err = app.encodeJSON(w, http.StatusOK, envelope{"review": review}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
@@ -190,6 +225,34 @@ func (app *application) deleteReviewHandler(w http.ResponseWriter, r *http.Reque
 		}
 		return
 	}
+	// Get ratings and update the popularity field of a book
+	bookId, err := app.readIDParam(r, "bookId")
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+	book, err := app.models.Books.Get(bookId)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	rating, err := app.models.Reviews.GetRatings()
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	book.Popularity = rating.Average
+	err = app.models.Books.Update(book)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	// encode delete success message to JSON
 	err = app.encodeJSON(w, http.StatusOK, envelope{"message": "review deleted successfully"}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
