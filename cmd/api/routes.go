@@ -30,6 +30,13 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPatch, "/v1/books/:bookId/reviews/:reviewId/downvote", app.requireActivatedUser(app.downvoteReviewHandler))
 	router.HandlerFunc(http.MethodDelete, "/v1/books/:bookId/reviews/:reviewId", app.requireReviewOwnerPermission(app.deleteReviewHandler))
 
+	// router.HandlerFunc(http.MethodGet, "/v1/booklists", app.requireActivatedUser(app.listBooklistsHandler))
+	router.HandlerFunc(http.MethodPost, "/v1/booklists", app.requireActivatedUser(app.createBooklistHandler))
+	router.HandlerFunc(http.MethodGet, "/v1/booklists/:booklistId", app.requireActivatedUser(app.showBooklistHandler))
+	router.HandlerFunc(http.MethodPatch, "/v1/booklists/:booklistId", app.requireBooklistOwnerPermission(app.updateBooklistHandler))
+	// router.HandlerFunc(http.MethodPost, "/v1/booklists/:booklistId/book", app.requireBooklistOwnerPermission(app.addBookToBooklistHandler))
+	router.HandlerFunc(http.MethodDelete, "/v1/booklists/:booklistId", app.requireBooklistOwnerPermission(app.deleteBooklistHandler))
+
 	router.HandlerFunc(http.MethodPost, "/v1/users", app.registerUserHandler)
 	router.HandlerFunc(http.MethodPut, "/v1/users/activated", app.activateUserHandler)
 	router.HandlerFunc(http.MethodPut, "/v1/users/password", app.updateUserPasswordHandler)

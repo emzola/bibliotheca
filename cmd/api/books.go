@@ -152,19 +152,19 @@ func (app *application) updateBookHandler(w http.ResponseWriter, r *http.Request
 	// The fields are set to a pointer type to allow partial updates based on nil value.
 	var input struct {
 		Title       *string  `json:"title"`
-		Description *string  `json:"description,omitempty"`
-		Author      []string `json:"author,omitempty"`
-		Category    *string  `json:"category,omitempty"`
-		Publisher   *string  `json:"publisher,omitempty"`
-		Language    *string  `json:"language,omitempty"`
-		Series      *string  `json:"series,omitempty"`
-		Volume      *int32   `json:"volume,omitempty"`
-		Edition     *string  `json:"edition,omitempty"`
-		Year        *int32   `json:"year,omitempty"`
-		PageCount   *int32   `json:"page_count,omitempty"`
-		Isbn10      *string  `json:"isbn_10,omitempty"`
-		Isbn13      *string  `json:"isbn_13,omitempty"`
-		Popularity  *float64 `json:"popularity,omitempty"`
+		Description *string  `json:"description"`
+		Author      []string `json:"author"`
+		Category    *string  `json:"category"`
+		Publisher   *string  `json:"publisher"`
+		Language    *string  `json:"language"`
+		Series      *string  `json:"series"`
+		Volume      *int32   `json:"volume"`
+		Edition     *string  `json:"edition"`
+		Year        *int32   `json:"year"`
+		PageCount   *int32   `json:"page_count"`
+		Isbn10      *string  `json:"isbn_10"`
+		Isbn13      *string  `json:"isbn_13"`
+		Popularity  *float64 `json:"popularity"`
 	}
 	err = app.decodeJSON(w, r, &input)
 	if err != nil {

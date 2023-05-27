@@ -150,3 +150,43 @@ func (app *application) requireReviewOwnerPermission(next http.HandlerFunc) http
 	})
 	return app.requireActivatedUser(fn)
 }
+
+// requireBooklistOwnerPermission middleware checks that a user is authenticated, activated and is the owner of the booklist.
+func (app *application) requireBooklistOwnerPermission(next http.HandlerFunc) http.HandlerFunc {
+	fn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Get user from request context
+		user := app.contextGetUser(r)
+		// Check whether booklist's UserID field is found in cache
+		cache := app.cache
+		booklistUserID := cache.Get("booklistUserID")
+		if booklistUserID == nil {
+			// If booklist's UserID field is not found, fetch it from the database and set to cache
+			id, err := app.readIDParam(r, "booklistId")
+			if err != nil || id < 1 {
+				app.notFoundResponse(w, r)
+				return
+			}
+			booklist, err := app.models.Booklists.Get(id)
+			if err != nil {
+				switch {
+				case errors.Is(err, data.ErrRecordNotFound):
+					app.notFoundResponse(w, r)
+				default:
+					app.serverErrorResponse(w, r, err)
+				}
+				return
+			}
+			cache.Set("booklistUserID", booklist.UserID, ttlcache.DefaultTTL)
+			// Retrieve booklist's UserID field from the cache that has just been set
+			booklistUserID = cache.Get("booklistUserID")
+		}
+		// Compare user's ID and booklist's UserID field in cache. If they aren't the same,
+		// forbid further action
+		if user.ID != booklistUserID.Value() {
+			app.notPermittedResponse(w, r)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+	return app.requireActivatedUser(fn)
+}

@@ -265,3 +265,32 @@ func (m BookModel) GetAll(title string, author []string, isbn10, isbn13, publish
 	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
 	return books, metadata, nil
 }
+
+// func (m BookModel) GetAllForBooklist(booklistID int64) ([]*Book, error) {
+// 	query := `
+// 		SELECT id, user_id, created_at, title, description, author, category, publisher, language, series, volume, edition, year, page_count, isbn_10, isbn_13, cover_path, s3_file_key, fname, extension, size, popularity, version
+// 		FROM books
+// 		INNER JOIN booklists_books ON booklists_books.book_id = books.id
+// 		INNER JOIN booklists ON booklists_books.booklist_id = booklists.id
+// 		WHERE booklist_id = $1`
+// 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+// 	defer cancel()
+// 	rows, err := m.DB.QueryContext(ctx, query, booklistID)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	defer rows.Close()
+// 	books := []*Book{}
+// 	for rows.Next() {
+// 		var book Book
+// 		err := rows.Scan(&book)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		books = append(books, &book)
+// 	}
+// 	if err = rows.Err(); err != nil {
+// 		return nil, err
+// 	}
+// 	return books, nil
+// }
