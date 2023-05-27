@@ -268,35 +268,6 @@ func (m BookModel) GetAll(title string, author []string, isbn10, isbn13, publish
 	return books, metadata, nil
 }
 
-// func (m BookModel) GetAllForBooklist(booklistID int64) ([]*Book, error) {
-// 	query := `
-// 		SELECT id, user_id, created_at, title, description, author, category, publisher, language, series, volume, edition, year, page_count, isbn_10, isbn_13, cover_path, s3_file_key, fname, extension, size, popularity, version
-// 		FROM books
-// 		INNER JOIN booklists_books ON booklists_books.book_id = books.id
-// 		INNER JOIN booklists ON booklists_books.booklist_id = booklists.id
-// 		WHERE booklist_id = $1`
-// 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-// 	defer cancel()
-// 	rows, err := m.DB.QueryContext(ctx, query, booklistID)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	defer rows.Close()
-// 	books := []*Book{}
-// 	for rows.Next() {
-// 		var book Book
-// 		err := rows.Scan(&book)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 		books = append(books, &book)
-// 	}
-// 	if err = rows.Err(); err != nil {
-// 		return nil, err
-// 	}
-// 	return books, nil
-// }
-
 func (m BookModel) AddFavouriteForUser(userID, bookID int64) error {
 	query := `
 		INSERT INTO users_favouritebooks (user_id, book_id)
@@ -338,4 +309,66 @@ func (m BookModel) RemoveFavouriteForUser(userID, bookID int64) error {
 		return ErrRecordNotFound
 	}
 	return nil
+}
+
+func (m BookModel) GetAllFavouritesForUser(userID int64, filters Filters) ([]*Book, Metadata, error) {
+	query := fmt.Sprintf(`
+		SELECT count(*) OVER(), books.id, books.user_id, books.created_at, books.title, books.description, books.author, books.category, books.publisher, books.language, books.series, books.volume, books.edition, books.year, books.page_count, books.isbn_10, books.isbn_13, books.cover_path, books.s3_file_key, books.fname, books.extension, books.size, books.popularity, books.version
+		FROM books
+		INNER JOIN users_favouritebooks ON users_favouritebooks.book_id = books.id
+		INNER JOIN users ON users_favouritebooks.user_id = users.id
+		WHERE users.id = $1
+		ORDER BY %s %s, id ASC
+		LIMIT $2 OFFSET $3`,
+		filters.sortColumn(), filters.sortDirection(),
+	)
+	args := []interface{}{userID, filters.limit(), filters.offset()}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	rows, err := m.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, Metadata{}, err
+	}
+	defer rows.Close()
+	defer rows.Close()
+	totalRecords := 0
+	books := []*Book{}
+	for rows.Next() {
+		var book Book
+		err := rows.Scan(
+			&totalRecords,
+			&book.ID,
+			&book.UserID,
+			&book.CreatedAt,
+			&book.Title,
+			&book.Description,
+			pq.Array(book.Author),
+			&book.Category,
+			&book.Publisher,
+			&book.Language,
+			&book.Series,
+			&book.Volume,
+			&book.Edition,
+			&book.Year,
+			&book.PageCount,
+			&book.Isbn10,
+			&book.Isbn13,
+			&book.CoverPath,
+			&book.S3FileKey,
+			&book.Filename,
+			&book.Extension,
+			&book.Size,
+			&book.Popularity,
+			&book.Version,
+		)
+		if err != nil {
+			return nil, Metadata{}, err
+		}
+		books = append(books, &book)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, Metadata{}, err
+	}
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+	return books, metadata, nil
 }

@@ -389,3 +389,29 @@ func (app *application) removeFavouriteBookHandler(w http.ResponseWriter, r *htt
 		app.serverErrorResponse(w, r, err)
 	}
 }
+
+func (app *application) listFavouriteBooksHandler(w http.ResponseWriter, r *http.Request) {
+	user := app.contextGetUser(r)
+	var input struct {
+		Filters data.Filters
+	}
+	v := validator.New()
+	qs := r.URL.Query()
+	input.Filters.Page = app.readInt(qs, "page", 1, v)
+	input.Filters.PageSize = app.readInt(qs, "page_size", 10, v)
+	input.Filters.Sort = app.readString(qs, "sort", "id")
+	input.Filters.SortSafeList = []string{"id", "title", "size", "year", "datetime", "-id", "-title", "-size", "-year", "-datetime"}
+	if data.ValidateFilters(v, input.Filters); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+	books, metadata, err := app.models.Books.GetAllFavouritesForUser(user.ID, input.Filters)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	err = app.encodeJSON(w, http.StatusOK, envelope{"books": books, "metadata": metadata}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
