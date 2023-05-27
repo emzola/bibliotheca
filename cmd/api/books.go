@@ -343,3 +343,49 @@ func (app *application) deleteBookHandler(w http.ResponseWriter, r *http.Request
 		app.serverErrorResponse(w, r, err)
 	}
 }
+
+func (app *application) favouriteBookHandler(w http.ResponseWriter, r *http.Request) {
+	bookId, err := app.readIDParam(r, "bookId")
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+	user := app.contextGetUser(r)
+	err = app.models.Books.AddFavouriteForUser(user.ID, bookId)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrDuplicateFavourite):
+			app.recordAlreadyExistsResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	err = app.encodeJSON(w, http.StatusOK, envelope{"message": "book sucessfully added to favourites"}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) removeFavouriteBookHandler(w http.ResponseWriter, r *http.Request) {
+	bookId, err := app.readIDParam(r, "bookId")
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+	user := app.contextGetUser(r)
+	err = app.models.Books.RemoveFavouriteForUser(user.ID, bookId)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	err = app.encodeJSON(w, http.StatusOK, envelope{"message": "book successfully removed from favourites"}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}

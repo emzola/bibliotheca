@@ -98,6 +98,6 @@ func (app *application) notPermittedResponse(w http.ResponseWriter, r *http.Requ
 }
 
 func (app *application) recordAlreadyExistsResponse(w http.ResponseWriter, r *http.Request) {
-	message := "record already exists"
+	message := "a record for your user account already exists"
 	app.errorResponse(w, r, http.StatusUnprocessableEntity, message)
 }

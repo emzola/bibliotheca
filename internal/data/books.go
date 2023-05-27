@@ -11,6 +11,8 @@ import (
 	"github.com/lib/pq"
 )
 
+var ErrDuplicateFavourite = errors.New("duplicate favourite")
+
 // The Book struct contains the data fields for a book.
 type Book struct {
 	ID          int64     `json:"id"`
@@ -294,3 +296,46 @@ func (m BookModel) GetAll(title string, author []string, isbn10, isbn13, publish
 // 	}
 // 	return books, nil
 // }
+
+func (m BookModel) AddFavouriteForUser(userID, bookID int64) error {
+	query := `
+		INSERT INTO users_favouritebooks (user_id, book_id)
+		VALUES ($1, $2)`
+	args := []interface{}{userID, bookID}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	_, err := m.DB.ExecContext(ctx, query, args...)
+	if err != nil {
+		switch {
+		case err.Error() == `pq: duplicate key value violates unique constraint "users_favouritebooks_pkey"`:
+			return ErrDuplicateFavourite
+		default:
+			return err
+		}
+	}
+	return nil
+}
+
+func (m BookModel) RemoveFavouriteForUser(userID, bookID int64) error {
+	if userID < 1 || bookID < 1 {
+		return ErrRecordNotFound
+	}
+	query := `
+		DELETE FROM users_favouritebooks
+		WHERE user_id = $1 AND book_id = $2`
+	args := []interface{}{userID, bookID}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	result, err := m.DB.ExecContext(ctx, query, args...)
+	if err != nil {
+		return err
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return ErrRecordNotFound
+	}
+	return nil
+}
