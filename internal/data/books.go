@@ -11,7 +11,7 @@ import (
 	"github.com/lib/pq"
 )
 
-var ErrDuplicateFavourite = errors.New("duplicate favourite")
+var ErrDuplicateBookFavourite = errors.New("duplicate book favourite")
 
 // The Book struct contains the data fields for a book.
 type Book struct {
@@ -270,7 +270,7 @@ func (m BookModel) GetAll(title string, author []string, isbn10, isbn13, publish
 
 func (m BookModel) AddFavouriteForUser(userID, bookID int64) error {
 	query := `
-		INSERT INTO users_favouritebooks (user_id, book_id)
+		INSERT INTO users_favourite_books (user_id, book_id)
 		VALUES ($1, $2)`
 	args := []interface{}{userID, bookID}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -278,8 +278,8 @@ func (m BookModel) AddFavouriteForUser(userID, bookID int64) error {
 	_, err := m.DB.ExecContext(ctx, query, args...)
 	if err != nil {
 		switch {
-		case err.Error() == `pq: duplicate key value violates unique constraint "users_favouritebooks_pkey"`:
-			return ErrDuplicateFavourite
+		case err.Error() == `pq: duplicate key value violates unique constraint "users_favourite_books_pkey"`:
+			return ErrDuplicateBookFavourite
 		default:
 			return err
 		}
@@ -292,7 +292,7 @@ func (m BookModel) RemoveFavouriteForUser(userID, bookID int64) error {
 		return ErrRecordNotFound
 	}
 	query := `
-		DELETE FROM users_favouritebooks
+		DELETE FROM users_favourite_books
 		WHERE user_id = $1 AND book_id = $2`
 	args := []interface{}{userID, bookID}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -315,8 +315,8 @@ func (m BookModel) GetAllFavouritesForUser(userID int64, filters Filters) ([]*Bo
 	query := fmt.Sprintf(`
 		SELECT count(*) OVER(), books.id, books.user_id, books.created_at, books.title, books.description, books.author, books.category, books.publisher, books.language, books.series, books.volume, books.edition, books.year, books.page_count, books.isbn_10, books.isbn_13, books.cover_path, books.s3_file_key, books.fname, books.extension, books.size, books.popularity, books.version
 		FROM books
-		INNER JOIN users_favouritebooks ON users_favouritebooks.book_id = books.id
-		INNER JOIN users ON users_favouritebooks.user_id = users.id
+		INNER JOIN users_favourite_books ON users_favourite_books.book_id = books.id
+		INNER JOIN users ON users_favourite_books.user_id = users.id
 		WHERE users.id = $1
 		ORDER BY %s %s, id ASC
 		LIMIT $2 OFFSET $3`,

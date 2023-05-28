@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS users_favouritebooklists (
+CREATE TABLE IF NOT EXISTS users_favourite_booklists (
     user_id bigint NOT NULL REFERENCES users ON DELETE CASCADE,
     booklist_id bigint NOT NULL REFERENCES booklists ON DELETE CASCADE,
     datetime timestamp(0) with time zone NOT NULL DEFAULT NOW(),

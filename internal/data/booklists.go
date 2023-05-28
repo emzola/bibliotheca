@@ -4,16 +4,19 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/emzola/bibliotheca/internal/validator"
 )
 
+var ErrDuplicateBooklistFavourite = errors.New("duplicate booklist favourite")
+
 // The Booklist struct contains the data fields for a booklist.
 type Booklist struct {
 	ID          int64     `json:"id"`
 	UserID      int64     `json:"user_id"`
-	Username    string    `json:"username"`
+	Username    string    `json:"user_name"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 	Private     bool      `json:"private"`
@@ -118,4 +121,94 @@ func (m BooklistModel) Delete(id int64) error {
 		return ErrRecordNotFound
 	}
 	return nil
+}
+
+func (m BooklistModel) AddFavouriteForUser(userID, booklistID int64) error {
+	query := `
+		INSERT INTO users_favourite_booklists (user_id, booklist_id)
+		VALUES ($1, $2)`
+	args := []interface{}{userID, booklistID}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	_, err := m.DB.ExecContext(ctx, query, args...)
+	if err != nil {
+		switch {
+		case err.Error() == `pq: duplicate key value violates unique constraint "users_favourite_booklists_pkey"`:
+			return ErrDuplicateBooklistFavourite
+		default:
+			return err
+		}
+	}
+	return nil
+}
+
+func (m BooklistModel) RemoveFavouriteForUser(userID, booklistID int64) error {
+	if userID < 1 || booklistID < 1 {
+		return ErrRecordNotFound
+	}
+	query := `
+		DELETE FROM users_favourite_booklists
+		WHERE user_id = $1 AND booklist_id = $2`
+	args := []interface{}{userID, booklistID}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	result, err := m.DB.ExecContext(ctx, query, args...)
+	if err != nil {
+		return err
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return ErrRecordNotFound
+	}
+	return nil
+}
+
+func (m BooklistModel) GetAllFavouritesForUser(userID int64, filters Filters) ([]*Booklist, Metadata, error) {
+	query := fmt.Sprintf(`
+		SELECT count(*) OVER(), booklists.id, booklists.user_id, booklists.name, booklists.description, booklists.private, booklists.created_at, booklists.updated_at, booklists.version
+		FROM booklists
+		INNER JOIN users_favourite_booklists ON users_favourite_booklists.booklist_id = booklists.id
+		INNER JOIN users ON users_favourite_booklists.user_id = users.id
+		WHERE users.id = $1
+		ORDER BY %s %s, id ASC
+		LIMIT $2 OFFSET $3`,
+		filters.sortColumn(), filters.sortDirection(),
+	)
+	args := []interface{}{userID, filters.limit(), filters.offset()}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	rows, err := m.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, Metadata{}, err
+	}
+	defer rows.Close()
+	defer rows.Close()
+	totalRecords := 0
+	booklists := []*Booklist{}
+	for rows.Next() {
+		var booklist Booklist
+		err := rows.Scan(
+			&totalRecords,
+			&booklist.ID,
+			&booklist.UserID,
+			&booklist.Name,
+			&booklist.Description,
+			&booklist.Private,
+			&booklist.CreatedAt,
+			&booklist.UpdatedAt,
+			&booklist.Version,
+		)
+		if err != nil {
+			return nil, Metadata{}, err
+		}
+		booklists = append(booklists, &booklist)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, Metadata{}, err
+	}
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+	return booklists, metadata, nil
 }

@@ -61,6 +61,7 @@ func (app *application) showBooklistHandler(w http.ResponseWriter, r *http.Reque
 		}
 		return
 	}
+	booklist.Username = app.contextGetUser(r).Name
 	err = app.encodeJSON(w, http.StatusOK, envelope{"booklist": booklist}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
@@ -117,6 +118,7 @@ func (app *application) updateBooklistHandler(w http.ResponseWriter, r *http.Req
 		}
 		return
 	}
+	booklist.Username = app.contextGetUser(r).Name
 	err = app.encodeJSON(w, http.StatusOK, envelope{"booklist": booklist}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
@@ -140,6 +142,78 @@ func (app *application) deleteBooklistHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 	err = app.encodeJSON(w, http.StatusOK, envelope{"message": "booklist successfully deleted"}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) addFavouriteBooklistHandler(w http.ResponseWriter, r *http.Request) {
+	booklistId, err := app.readIDParam(r, "booklistId")
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+	user := app.contextGetUser(r)
+	err = app.models.Booklists.AddFavouriteForUser(user.ID, booklistId)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrDuplicateBooklistFavourite):
+			app.recordAlreadyExistsResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	err = app.encodeJSON(w, http.StatusOK, envelope{"message": "booklist sucessfully added to favourites"}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) removeFavouriteBooklistHandler(w http.ResponseWriter, r *http.Request) {
+	booklistId, err := app.readIDParam(r, "booklistId")
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+	user := app.contextGetUser(r)
+	err = app.models.Booklists.RemoveFavouriteForUser(user.ID, booklistId)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	err = app.encodeJSON(w, http.StatusOK, envelope{"message": "booklist successfully removed from favourites"}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) listFavouriteBooklistsHandler(w http.ResponseWriter, r *http.Request) {
+	user := app.contextGetUser(r)
+	var input struct {
+		Filters data.Filters
+	}
+	v := validator.New()
+	qs := r.URL.Query()
+	input.Filters.Page = app.readInt(qs, "page", 1, v)
+	input.Filters.PageSize = app.readInt(qs, "page_size", 10, v)
+	input.Filters.Sort = app.readString(qs, "sort", "-datetime")
+	input.Filters.SortSafeList = []string{"created_at", "updated_at", "datetime", "-created_at", "-updated_at", "-datetime"}
+	if data.ValidateFilters(v, input.Filters); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+	booklists, metadata, err := app.models.Booklists.GetAllFavouritesForUser(user.ID, input.Filters)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	err = app.encodeJSON(w, http.StatusOK, envelope{"booklists": booklists, "metadata": metadata}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

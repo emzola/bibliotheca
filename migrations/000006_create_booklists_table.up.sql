@@ -5,7 +5,6 @@ CREATE TABLE IF NOT EXISTS booklists (
     description text NOT NULL DEFAULT '',
     books jsonb NOT NULL DEFAULT '{}',
     private boolean NOT NULL DEFAULT FALSE,
-    favourite boolean NOT NULL DEFAULT FALSE,
     created_at timestamp(0) with time zone NOT NULL DEFAULT NOW(),
     updated_at timestamp(0) with time zone NOT NULL DEFAULT NOW(),
     version integer NOT NULL DEFAULT 1

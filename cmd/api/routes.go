@@ -21,7 +21,7 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodDelete, "/v1/books/:bookId", app.requireBookOwnerPermission(app.deleteBookHandler))
 	router.HandlerFunc(http.MethodPatch, "/v1/books/:bookId/cover", app.requireBookOwnerPermission(app.updateBookCoverHandler))
 	router.HandlerFunc(http.MethodGet, "/v1/books/:bookId/download", app.requireActivatedUser(app.downloadBookHandler))
-	router.HandlerFunc(http.MethodPost, "/v1/books/:bookId/favourite", app.requireActivatedUser(app.favouriteBookHandler))
+	router.HandlerFunc(http.MethodPost, "/v1/books/:bookId/favourite", app.requireActivatedUser(app.addFavouriteBookHandler))
 	router.HandlerFunc(http.MethodDelete, "/v1/books/:bookId/favourite", app.requireActivatedUser(app.removeFavouriteBookHandler))
 
 	router.HandlerFunc(http.MethodGet, "/v1/books/:bookId/reviews", app.requireActivatedUser(app.listReviewsHandler))
@@ -38,12 +38,15 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPatch, "/v1/booklists/:booklistId", app.requireBooklistOwnerPermission(app.updateBooklistHandler))
 	// router.HandlerFunc(http.MethodPost, "/v1/booklists/:booklistId/book", app.requireBooklistOwnerPermission(app.addBookToBooklistHandler))
 	router.HandlerFunc(http.MethodDelete, "/v1/booklists/:booklistId", app.requireBooklistOwnerPermission(app.deleteBooklistHandler))
+	router.HandlerFunc(http.MethodPost, "/v1/booklists/:booklistId/favourite", app.requireActivatedUser(app.addFavouriteBooklistHandler))
+	router.HandlerFunc(http.MethodDelete, "/v1/booklists/:booklistId/favourite", app.requireActivatedUser(app.removeFavouriteBooklistHandler))
 
 	router.HandlerFunc(http.MethodPost, "/v1/users", app.registerUserHandler)
 	router.HandlerFunc(http.MethodPut, "/v1/users/activated", app.activateUserHandler)
 	router.HandlerFunc(http.MethodPut, "/v1/users/password", app.updateUserPasswordHandler)
 
 	router.HandlerFunc(http.MethodGet, "/v1/users/favourite-books", app.requireActivatedUser(app.listFavouriteBooksHandler))
+	router.HandlerFunc(http.MethodGet, "/v1/users/favourite-booklists", app.requireActivatedUser(app.listFavouriteBooklistsHandler))
 
 	router.HandlerFunc(http.MethodPost, "/v1/tokens/activation", app.createActivationTokenHandler)
 	router.HandlerFunc(http.MethodPost, "/v1/tokens/password-reset", app.createPasswordResetTokenHandler)

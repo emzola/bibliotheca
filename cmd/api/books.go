@@ -344,7 +344,7 @@ func (app *application) deleteBookHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
-func (app *application) favouriteBookHandler(w http.ResponseWriter, r *http.Request) {
+func (app *application) addFavouriteBookHandler(w http.ResponseWriter, r *http.Request) {
 	bookId, err := app.readIDParam(r, "bookId")
 	if err != nil {
 		app.notFoundResponse(w, r)
@@ -354,7 +354,7 @@ func (app *application) favouriteBookHandler(w http.ResponseWriter, r *http.Requ
 	err = app.models.Books.AddFavouriteForUser(user.ID, bookId)
 	if err != nil {
 		switch {
-		case errors.Is(err, data.ErrDuplicateFavourite):
+		case errors.Is(err, data.ErrDuplicateBookFavourite):
 			app.recordAlreadyExistsResponse(w, r)
 		default:
 			app.serverErrorResponse(w, r, err)
@@ -399,8 +399,8 @@ func (app *application) listFavouriteBooksHandler(w http.ResponseWriter, r *http
 	qs := r.URL.Query()
 	input.Filters.Page = app.readInt(qs, "page", 1, v)
 	input.Filters.PageSize = app.readInt(qs, "page_size", 10, v)
-	input.Filters.Sort = app.readString(qs, "sort", "id")
-	input.Filters.SortSafeList = []string{"id", "title", "size", "year", "datetime", "-id", "-title", "-size", "-year", "-datetime"}
+	input.Filters.Sort = app.readString(qs, "sort", "-datetime")
+	input.Filters.SortSafeList = []string{"title", "size", "year", "datetime", "-title", "-size", "-year", "-datetime"}
 	if data.ValidateFilters(v, input.Filters); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
 		return
