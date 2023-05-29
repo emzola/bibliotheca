@@ -212,3 +212,48 @@ func (m BooklistModel) GetAllFavouritesForUser(userID int64, filters Filters) ([
 	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
 	return booklists, metadata, nil
 }
+
+func (m BooklistModel) GetAllBooklistsForUser(userID int64, filters Filters) ([]*Booklist, Metadata, error) {
+	query := fmt.Sprintf(`
+		SELECT count(*) OVER(), id, user_id, name, description, private, created_at, updated_at, version
+		FROM booklists
+		WHERE user_id = $1
+		ORDER BY %s %s, id ASC
+		LIMIT $2 OFFSET $3`,
+		filters.sortColumn(), filters.sortDirection(),
+	)
+	args := []interface{}{userID, filters.limit(), filters.offset()}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	rows, err := m.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, Metadata{}, err
+	}
+	defer rows.Close()
+	defer rows.Close()
+	totalRecords := 0
+	booklists := []*Booklist{}
+	for rows.Next() {
+		var booklist Booklist
+		err := rows.Scan(
+			&totalRecords,
+			&booklist.ID,
+			&booklist.UserID,
+			&booklist.Name,
+			&booklist.Description,
+			&booklist.Private,
+			&booklist.CreatedAt,
+			&booklist.UpdatedAt,
+			&booklist.Version,
+		)
+		if err != nil {
+			return nil, Metadata{}, err
+		}
+		booklists = append(booklists, &booklist)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, Metadata{}, err
+	}
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+	return booklists, metadata, nil
+}
