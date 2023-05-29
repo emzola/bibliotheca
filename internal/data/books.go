@@ -11,7 +11,10 @@ import (
 	"github.com/lib/pq"
 )
 
-var ErrDuplicateBookFavourite = errors.New("duplicate book favourite")
+var (
+	ErrDuplicateBookFavourite = errors.New("duplicate book favourite")
+	ErrDuplicateBookDownload  = errors.New("duplicate book download")
+)
 
 // The Book struct contains the data fields for a book.
 type Book struct {
@@ -343,6 +346,146 @@ func (m BookModel) GetAllFavouritesForUser(userID int64, filters Filters) ([]*Bo
 			&book.Title,
 			&book.Description,
 			pq.Array(book.Author),
+			&book.Category,
+			&book.Publisher,
+			&book.Language,
+			&book.Series,
+			&book.Volume,
+			&book.Edition,
+			&book.Year,
+			&book.PageCount,
+			&book.Isbn10,
+			&book.Isbn13,
+			&book.CoverPath,
+			&book.S3FileKey,
+			&book.Filename,
+			&book.Extension,
+			&book.Size,
+			&book.Popularity,
+			&book.Version,
+		)
+		if err != nil {
+			return nil, Metadata{}, err
+		}
+		books = append(books, &book)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, Metadata{}, err
+	}
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+	return books, metadata, nil
+}
+
+func (m BookModel) GetAllBooksForUser(userID int64, filters Filters) ([]*Book, Metadata, error) {
+	query := fmt.Sprintf(`
+		SELECT count(*) OVER(), id, user_id, created_at, title, description, author, category, publisher, language, series, volume, edition, year, page_count, isbn_10, isbn_13, cover_path, s3_file_key, fname, extension, size, popularity, version
+		FROM books  
+		WHERE user_id = $1
+		ORDER BY %s %s, id ASC
+		LIMIT $2 OFFSET $3`,
+		filters.sortColumn(), filters.sortDirection(),
+	)
+	args := []interface{}{userID, filters.limit(), filters.offset()}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	rows, err := m.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, Metadata{}, err
+	}
+	defer rows.Close()
+	totalRecords := 0
+	books := []*Book{}
+	for rows.Next() {
+		var book Book
+		err := rows.Scan(
+			&totalRecords,
+			&book.ID,
+			&book.UserID,
+			&book.CreatedAt,
+			&book.Title,
+			&book.Description,
+			pq.Array(&book.Author),
+			&book.Category,
+			&book.Publisher,
+			&book.Language,
+			&book.Series,
+			&book.Volume,
+			&book.Edition,
+			&book.Year,
+			&book.PageCount,
+			&book.Isbn10,
+			&book.Isbn13,
+			&book.CoverPath,
+			&book.S3FileKey,
+			&book.Filename,
+			&book.Extension,
+			&book.Size,
+			&book.Popularity,
+			&book.Version,
+		)
+		if err != nil {
+			return nil, Metadata{}, err
+		}
+		books = append(books, &book)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, Metadata{}, err
+	}
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+	return books, metadata, nil
+}
+
+func (m BookModel) AddDownloadForUser(userID, bookID int64) error {
+	query := `
+		INSERT INTO users_downloads (user_id, book_id)
+		VALUES ($1, $2)`
+	args := []interface{}{userID, bookID}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	_, err := m.DB.ExecContext(ctx, query, args...)
+	if err != nil {
+		switch {
+		case err.Error() == `pq: duplicate key value violates unique constraint "users_downloads_pkey"`:
+			return ErrDuplicateBookDownload
+		default:
+			return err
+		}
+	}
+	return nil
+}
+
+func (m BookModel) GetAllDownloadsForUser(userID int64, fromDate, toDate string, filters Filters) ([]*Book, Metadata, error) {
+	query := fmt.Sprintf(`
+		SELECT count(*) OVER(), books.id, books.user_id, books.created_at, books.title, books.description, books.author, books.category, books.publisher, books.language, books.series, books.volume, books.edition, books.year, books.page_count, books.isbn_10, books.isbn_13, books.cover_path, books.s3_file_key, books.fname, books.extension, books.size, books.popularity, books.version
+		FROM books
+		INNER JOIN users_downloads ON users_downloads.book_id = books.id
+		INNER JOIN users ON users_downloads.user_id = users.id
+		WHERE users.id = $1
+		AND DATE(datetime) BETWEEN TO_DATE($2, 'YYYY-MM-DD') AND TO_DATE($3, 'YYYY-MM-DD')
+		ORDER BY %s %s, datetime DESC
+		LIMIT $4 OFFSET $5`,
+		filters.sortColumn(), filters.sortDirection(),
+	)
+	args := []interface{}{userID, fromDate, toDate, filters.limit(), filters.offset()}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	rows, err := m.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, Metadata{}, err
+	}
+	defer rows.Close()
+	totalRecords := 0
+	books := []*Book{}
+	for rows.Next() {
+		var book Book
+		err := rows.Scan(
+			&totalRecords,
+			&book.ID,
+			&book.UserID,
+			&book.CreatedAt,
+			&book.Title,
+			&book.Description,
+			pq.Array(&book.Author),
 			&book.Category,
 			&book.Publisher,
 			&book.Language,

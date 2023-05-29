@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/emzola/bibliotheca/internal/data"
 	"github.com/emzola/bibliotheca/internal/validator"
@@ -320,6 +321,18 @@ func (app *application) downloadBookHandler(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		app.badRequestResponse(w, r, err)
 	}
+	// Add download record to downloads table
+	user := app.contextGetUser(r)
+	err = app.models.Books.AddDownloadForUser(user.ID, book.ID)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrDuplicateBookDownload):
+			app.recordAlreadyExistsResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
 }
 
 func (app *application) deleteBookHandler(w http.ResponseWriter, r *http.Request) {
@@ -406,6 +419,62 @@ func (app *application) listFavouriteBooksHandler(w http.ResponseWriter, r *http
 		return
 	}
 	books, metadata, err := app.models.Books.GetAllFavouritesForUser(user.ID, input.Filters)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	err = app.encodeJSON(w, http.StatusOK, envelope{"books": books, "metadata": metadata}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) listUsersBooksHandler(w http.ResponseWriter, r *http.Request) {
+	user := app.contextGetUser(r)
+	var input struct {
+		Filters data.Filters
+	}
+	v := validator.New()
+	qs := r.URL.Query()
+	input.Filters.Page = app.readInt(qs, "page", 1, v)
+	input.Filters.PageSize = app.readInt(qs, "page_size", 10, v)
+	input.Filters.Sort = app.readString(qs, "sort", "-created_at")
+	input.Filters.SortSafeList = []string{"created_at", "popularity", "size", "-created_at", "-popularity", "-size"}
+	if data.ValidateFilters(v, input.Filters); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+	books, metadata, err := app.models.Books.GetAllBooksForUser(user.ID, input.Filters)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	err = app.encodeJSON(w, http.StatusOK, envelope{"books": books, "metadata": metadata}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) listUsersDownloadsHandler(w http.ResponseWriter, r *http.Request) {
+	user := app.contextGetUser(r)
+	var input struct {
+		FromDate string
+		ToDate   string
+		Filters  data.Filters
+	}
+	v := validator.New()
+	qs := r.URL.Query()
+	input.FromDate = app.readString(qs, "from_date", "2023-01-01")
+	input.ToDate = app.readString(qs, "to_date", time.Now().Format("2006-01-01"))
+	input.Filters.Page = app.readInt(qs, "page", 1, v)
+	input.Filters.PageSize = app.readInt(qs, "page_size", 10, v)
+	input.Filters.Sort = app.readString(qs, "sort", "-datetime")
+	input.Filters.SortSafeList = []string{"datetime", "-datetime"}
+	if data.ValidateFilters(v, input.Filters); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+	books, metadata, err := app.models.Books.GetAllDownloadsForUser(user.ID, input.FromDate, input.ToDate, input.Filters)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return

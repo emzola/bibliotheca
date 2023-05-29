@@ -185,7 +185,6 @@ func (m BooklistModel) GetAllFavouritesForUser(userID int64, filters Filters) ([
 		return nil, Metadata{}, err
 	}
 	defer rows.Close()
-	defer rows.Close()
 	totalRecords := 0
 	booklists := []*Booklist{}
 	for rows.Next() {
@@ -229,7 +228,6 @@ func (m BooklistModel) GetAllBooklistsForUser(userID int64, filters Filters) ([]
 	if err != nil {
 		return nil, Metadata{}, err
 	}
-	defer rows.Close()
 	defer rows.Close()
 	totalRecords := 0
 	booklists := []*Booklist{}

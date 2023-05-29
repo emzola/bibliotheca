@@ -243,5 +243,4 @@ func (app *application) listUsersBooklistsHandler(w http.ResponseWriter, r *http
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
-
 }
