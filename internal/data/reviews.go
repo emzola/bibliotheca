@@ -31,7 +31,6 @@ type Review struct {
 	CreatedAt time.Time `json:"created_at"`
 	Rating    int8      `json:"rating"`
 	Comment   string    `json:"comment"`
-	Vote      int64     `json:"vote"`
 	Version   int32     `json:"-"`
 }
 
@@ -61,7 +60,7 @@ func (m ReviewModel) Get(id int64) (*Review, error) {
 		return nil, ErrRecordNotFound
 	}
 	query := `
-		SELECT id, book_id, user_id, created_at, rating, comment, vote, version
+		SELECT id, book_id, user_id, created_at, rating, comment, version
 		FROM reviews
 		WHERE id = $1`
 	var review Review
@@ -74,7 +73,6 @@ func (m ReviewModel) Get(id int64) (*Review, error) {
 		&review.CreatedAt,
 		&review.Rating,
 		&review.Comment,
-		&review.Vote,
 		&review.Version,
 	)
 	if err != nil {
@@ -91,10 +89,10 @@ func (m ReviewModel) Get(id int64) (*Review, error) {
 func (m ReviewModel) Update(review *Review) error {
 	query := `
 		UPDATE reviews
-		SET rating = $1, comment = $2, vote = $3, version = version + 1
-		WHERE id = $4 AND version = $5
+		SET rating = $1, comment = $2, version = version + 1
+		WHERE id = $3 AND version = $4
 		RETURNING version`
-	args := []interface{}{review.Rating, review.Comment, review.Vote, review.ID, review.Version}
+	args := []interface{}{review.Rating, review.Comment, review.ID, review.Version}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&review.Version)
@@ -134,7 +132,7 @@ func (m ReviewModel) Delete(id int64) error {
 
 func (m ReviewModel) GetAll(filters Filters) (Rating, []*Review, Metadata, error) {
 	query := fmt.Sprintf(`
-		SELECT count(*) OVER(), id, book_id, user_id, created_at, rating, comment, vote, version
+		SELECT count(*) OVER(), id, book_id, user_id, created_at, rating, comment, version
 		FROM reviews  
 		ORDER BY %s %s, id ASC
 		LIMIT $1 OFFSET $2`,
@@ -161,7 +159,6 @@ func (m ReviewModel) GetAll(filters Filters) (Rating, []*Review, Metadata, error
 			&review.CreatedAt,
 			&review.Rating,
 			&review.Comment,
-			&review.Vote,
 			&review.Version,
 		)
 		if err != nil {
@@ -203,7 +200,7 @@ func (m ReviewModel) GetAll(filters Filters) (Rating, []*Review, Metadata, error
 
 func (m ReviewModel) RecordExistsForUser(bookId, userId int64) bool {
 	query := `
-		SELECT id, book_id, user_id, created_at, rating, comment, vote, version
+		SELECT id, book_id, user_id, created_at, rating, comment, version
 		FROM reviews
 		WHERE book_id = $1 AND user_id = $2`
 	args := []interface{}{bookId, userId}
@@ -217,7 +214,6 @@ func (m ReviewModel) RecordExistsForUser(bookId, userId int64) bool {
 		&review.CreatedAt,
 		&review.Rating,
 		&review.Comment,
-		&review.Vote,
 		&review.Version,
 	)
 	return !errors.Is(err, sql.ErrNoRows)
