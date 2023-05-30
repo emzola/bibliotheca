@@ -454,14 +454,37 @@ func (m BookModel) AddDownloadForUser(userID, bookID int64) error {
 	return nil
 }
 
+func (m BookModel) RemoveDownloadForUser(userID, bookID int64) error {
+	if userID < 1 || bookID < 1 {
+		return ErrRecordNotFound
+	}
+	query := `
+		DELETE FROM users_downloads
+		WHERE user_id = $1 AND book_id = $2`
+	args := []interface{}{userID, bookID}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	result, err := m.DB.ExecContext(ctx, query, args...)
+	if err != nil {
+		return err
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return ErrRecordNotFound
+	}
+	return nil
+}
+
 func (m BookModel) GetAllDownloadsForUser(userID int64, fromDate, toDate string, filters Filters) ([]*Book, Metadata, error) {
 	query := fmt.Sprintf(`
 		SELECT count(*) OVER(), books.id, books.user_id, books.created_at, books.title, books.description, books.author, books.category, books.publisher, books.language, books.series, books.volume, books.edition, books.year, books.page_count, books.isbn_10, books.isbn_13, books.cover_path, books.s3_file_key, books.fname, books.extension, books.size, books.popularity, books.version
 		FROM books
 		INNER JOIN users_downloads ON users_downloads.book_id = books.id
 		INNER JOIN users ON users_downloads.user_id = users.id
-		WHERE users.id = $1
-		AND DATE(datetime) BETWEEN TO_DATE($2, 'YYYY-MM-DD') AND TO_DATE($3, 'YYYY-MM-DD')
+		WHERE users.id = $1 AND DATE(datetime) BETWEEN TO_DATE($2, 'YYYY-MM-DD') AND TO_DATE($3, 'YYYY-MM-DD')
 		ORDER BY %s %s, datetime DESC
 		LIMIT $4 OFFSET $5`,
 		filters.sortColumn(), filters.sortDirection(),

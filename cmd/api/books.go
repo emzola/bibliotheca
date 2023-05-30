@@ -455,7 +455,7 @@ func (app *application) listUsersBooksHandler(w http.ResponseWriter, r *http.Req
 	}
 }
 
-func (app *application) listUsersDownloadsHandler(w http.ResponseWriter, r *http.Request) {
+func (app *application) listUserDownloadsHandler(w http.ResponseWriter, r *http.Request) {
 	user := app.contextGetUser(r)
 	var input struct {
 		FromDate string
@@ -465,7 +465,7 @@ func (app *application) listUsersDownloadsHandler(w http.ResponseWriter, r *http
 	v := validator.New()
 	qs := r.URL.Query()
 	input.FromDate = app.readString(qs, "from_date", "2023-01-01")
-	input.ToDate = app.readString(qs, "to_date", time.Now().Format("2006-01-01"))
+	input.ToDate = app.readString(qs, "to_date", time.Now().Format("2006-01-02"))
 	input.Filters.Page = app.readInt(qs, "page", 1, v)
 	input.Filters.PageSize = app.readInt(qs, "page_size", 10, v)
 	input.Filters.Sort = app.readString(qs, "sort", "-datetime")
@@ -480,6 +480,29 @@ func (app *application) listUsersDownloadsHandler(w http.ResponseWriter, r *http
 		return
 	}
 	err = app.encodeJSON(w, http.StatusOK, envelope{"books": books, "metadata": metadata}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) deleteBookFromDownloadsHandler(w http.ResponseWriter, r *http.Request) {
+	bookId, err := app.readIDParam(r, "bookId")
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+	user := app.contextGetUser(r)
+	err = app.models.Books.RemoveDownloadForUser(user.ID, bookId)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	err = app.encodeJSON(w, http.StatusOK, envelope{"message": "book successfully removed from download history"}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

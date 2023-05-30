@@ -219,7 +219,7 @@ func (app *application) listFavouriteBooklistsHandler(w http.ResponseWriter, r *
 	}
 }
 
-func (app *application) listUsersBooklistsHandler(w http.ResponseWriter, r *http.Request) {
+func (app *application) listUserBooklistsHandler(w http.ResponseWriter, r *http.Request) {
 	user := app.contextGetUser(r)
 	var input struct {
 		Filters data.Filters
