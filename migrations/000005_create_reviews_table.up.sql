@@ -5,7 +5,6 @@ CREATE TABLE IF NOT EXISTS reviews (
     created_at timestamp(0) with time zone NOT NULL DEFAULT NOW(),
     rating integer NOT NULL,
     comment text NOT NULL DEFAULT '',
-    vote integer NOT NULL DEFAULT 0,
     version integer NOT NULL DEFAULT 1
 );
 

@@ -39,6 +39,12 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodDelete, "/v1/booklists/:booklistId", app.requireBooklistOwnerPermission(app.deleteBooklistHandler))
 	router.HandlerFunc(http.MethodPost, "/v1/booklists/:booklistId/favourite", app.requireActivatedUser(app.addFavouriteBooklistHandler))
 	router.HandlerFunc(http.MethodDelete, "/v1/booklists/:booklistId/favourite", app.requireActivatedUser(app.removeFavouriteBooklistHandler))
+	router.HandlerFunc(http.MethodGet, "/v1/booklists/:booklistId/comments", app.requireActivatedUser(app.listCommentsHandler))
+	router.HandlerFunc(http.MethodPost, "/v1/booklists/:booklistId/comments", app.requireActivatedUser(app.createCommentHandler))
+	router.HandlerFunc(http.MethodPatch, "/v1/booklists/:booklistId/comments", app.requireCommentOwnerPermission(app.updateCommentHandler))
+	router.HandlerFunc(http.MethodDelete, "/v1/booklists/:booklistId/comments", app.requireCommentOwnerPermission(app.deleteCommentHandler))
+
+	router.HandlerFunc(http.MethodPost, "/v1/booklists/:booklistId/comments/:commentId", app.requireActivatedUser(app.createCommentReplyHandler))
 
 	router.HandlerFunc(http.MethodGet, "/v1/users/favourite-books", app.requireActivatedUser(app.listFavouriteBooksHandler))
 	router.HandlerFunc(http.MethodGet, "/v1/users/favourite-booklists", app.requireActivatedUser(app.listFavouriteBooklistsHandler))

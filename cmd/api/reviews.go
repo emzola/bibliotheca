@@ -74,7 +74,7 @@ func (app *application) createReviewHandler(w http.ResponseWriter, r *http.Reque
 	// Set location header for the newly created review and encode it to JSON
 	headers := make(http.Header)
 	headers.Set("Location", fmt.Sprintf("/v1/books/%d/reviews/%d", book.ID, review.ID))
-	err = app.encodeJSON(w, http.StatusCreated, envelope{"Review": review}, headers)
+	err = app.encodeJSON(w, http.StatusCreated, envelope{"review": review}, headers)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

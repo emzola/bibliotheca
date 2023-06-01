@@ -16,9 +16,9 @@ type Models struct {
 	Books     BookModel
 	Reviews   ReviewModel
 	Booklists BooklistModel
-	// BooklistsBooks BooklistBookModel
-	Tokens TokenModel
-	Users  UserModel
+	Comments  CommentModel
+	Tokens    TokenModel
+	Users     UserModel
 }
 
 func NewModels(db *sql.DB) *Models {
@@ -26,8 +26,8 @@ func NewModels(db *sql.DB) *Models {
 		Books:     BookModel{DB: db},
 		Reviews:   ReviewModel{DB: db},
 		Booklists: BooklistModel{DB: db},
-		// BooklistsBooks: BooklistBookModel{DB: db},
-		Tokens: TokenModel{DB: db},
-		Users:  UserModel{DB: db},
+		Comments:  CommentModel{DB: db},
+		Tokens:    TokenModel{DB: db},
+		Users:     UserModel{DB: db},
 	}
 }

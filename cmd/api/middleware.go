@@ -190,3 +190,43 @@ func (app *application) requireBooklistOwnerPermission(next http.HandlerFunc) ht
 	})
 	return app.requireActivatedUser(fn)
 }
+
+// requireCommentOwnerPermission middleware checks that a user is authenticated, activated and is the owner of the comment.
+func (app *application) requireCommentOwnerPermission(next http.HandlerFunc) http.HandlerFunc {
+	fn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Get user from request context
+		user := app.contextGetUser(r)
+		// Check whether comment's UserID field is found in cache
+		cache := app.cache
+		commentUserID := cache.Get("commentUserID")
+		if commentUserID == nil {
+			// If comment's UserID field is not found, fetch it from the database and set to cache
+			id, err := app.readIDParam(r, "commentId")
+			if err != nil || id < 1 {
+				app.notFoundResponse(w, r)
+				return
+			}
+			comment, err := app.models.Comments.Get(id)
+			if err != nil {
+				switch {
+				case errors.Is(err, data.ErrRecordNotFound):
+					app.notFoundResponse(w, r)
+				default:
+					app.serverErrorResponse(w, r, err)
+				}
+				return
+			}
+			cache.Set("commentUserID", comment.UserID, ttlcache.DefaultTTL)
+			// Retrieve comment's UserID field from the cache that has just been set
+			commentUserID = cache.Get("commentUserID")
+		}
+		// Compare user's ID and comment's UserID field in cache. If they aren't the same,
+		// forbid further action
+		if user.ID != commentUserID.Value() {
+			app.notPermittedResponse(w, r)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+	return app.requireActivatedUser(fn)
+}
