@@ -1,0 +1,37 @@
+CREATE TABLE IF NOT EXISTS categories (
+    id bigserial PRIMARY KEY,
+    name text NOT NULL
+);
+
+INSERT INTO categories (name)
+VALUES ('arts'),
+('astronomy'),
+('biography & autobiography'),
+('biology & other natural sciences'),
+('business & economics'),
+('chemistry'),
+('comics & graphic novels'),
+('childrens books'),
+('computers'),
+('crime, thrillers & mystery'),
+('education studies & teaching'),
+('engineering'),
+('earth sciences'),
+('fiction'),
+('history'),
+('jurisprudence & law'),
+('housekeeping & leisure'),
+('languages'),
+('linguistics'),
+('mathematics'),
+('medicine'),
+('nature, animals & pets'),
+('psychology'),
+('physics'),
+('poetry'),
+('romance'),
+('religion'),
+('self-help, relationships & lifestyle'),
+('science fiction & fantasy'),
+('sports, hobbies & games'),
+('travel');

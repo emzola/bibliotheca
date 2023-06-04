@@ -538,3 +538,64 @@ func (m BookModel) GetAllDownloadsForUser(userID int64, fromDate, toDate string,
 	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
 	return books, metadata, nil
 }
+
+func (m BookModel) GetAllBooksForCategory(categoryID int64, filters Filters) ([]*Book, Metadata, error) {
+	query := fmt.Sprintf(`
+		SELECT count (*) OVER(), books.id, books.user_id, books.created_at, books.title, books.description, books.author, books.category, books.publisher, books.language, books.series, books.volume, books.edition, books.year, books.page_count, books.isbn_10, books.isbn_13, books.cover_path, books.s3_file_key, books.fname, books.extension, books.size, books.popularity, books.version
+		FROM books
+		INNER JOIN books_categories ON books_categories.book_id = books.id
+		INNER JOIN categories ON books_categories.category_id = categories.id
+		WHERE categories.id = $1
+		ORDER BY %s %s, datetime DESC
+		LIMIT $2 OFFSET $3`,
+		filters.sortColumn(), filters.sortDirection(),
+	)
+	args := []interface{}{categoryID, filters.limit(), filters.offset()}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	rows, err := m.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, Metadata{}, err
+	}
+	defer rows.Close()
+	totalRecords := 0
+	books := []*Book{}
+	for rows.Next() {
+		var book Book
+		err := rows.Scan(
+			&totalRecords,
+			&book.ID,
+			&book.UserID,
+			&book.CreatedAt,
+			&book.Title,
+			&book.Description,
+			pq.Array(&book.Author),
+			&book.Category,
+			&book.Publisher,
+			&book.Language,
+			&book.Series,
+			&book.Volume,
+			&book.Edition,
+			&book.Year,
+			&book.PageCount,
+			&book.Isbn10,
+			&book.Isbn13,
+			&book.CoverPath,
+			&book.S3FileKey,
+			&book.Filename,
+			&book.Extension,
+			&book.Size,
+			&book.Popularity,
+			&book.Version,
+		)
+		if err != nil {
+			return nil, Metadata{}, err
+		}
+		books = append(books, &book)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, Metadata{}, err
+	}
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+	return books, metadata, nil
+}

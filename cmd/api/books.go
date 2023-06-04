@@ -229,6 +229,56 @@ func (app *application) updateBookHandler(w http.ResponseWriter, r *http.Request
 		}
 		return
 	}
+	// Also update books_categories table to detect
+	// the right book associated with a category
+	if input.Category != nil {
+		// First check if a category for a book exists in books_categories table
+		category, err := app.models.Categories.GetForBook(book.ID)
+		if err != nil {
+			switch {
+			// If ErrRecordNotFound is returned, it means no category was found,
+			// so add a category for the book in the books_categories table
+			case errors.Is(err, data.ErrRecordNotFound):
+				err := app.models.Categories.AddForBook(book.ID, book.Category)
+				if err != nil {
+					switch {
+					case errors.Is(err, data.ErrDuplicateCategory):
+						app.recordAlreadyExistsResponse(w, r)
+					default:
+						app.serverErrorResponse(w, r, err)
+					}
+					return
+				}
+			default:
+				app.serverErrorResponse(w, r, err)
+				return
+			}
+		} else {
+			// At this point, a category exists already in the books_categories table,
+			// So delete the record and add a new record with updated info
+			err := app.models.Categories.DeleteForBook(book.ID, category.ID)
+			if err != nil {
+				switch {
+				case errors.Is(err, data.ErrRecordNotFound):
+					app.notFoundResponse(w, r)
+				default:
+					app.serverErrorResponse(w, r, err)
+				}
+				return
+			}
+			err = app.models.Categories.AddForBook(book.ID, book.Category)
+			if err != nil {
+				switch {
+				case errors.Is(err, data.ErrDuplicateCategory):
+					app.recordAlreadyExistsResponse(w, r)
+				default:
+					app.serverErrorResponse(w, r, err)
+				}
+				return
+			}
+		}
+	}
+	// Encode updated book to JSON as usual
 	err = app.encodeJSON(w, http.StatusOK, envelope{"book": book}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)

@@ -25,6 +25,9 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPost, "/v1/books/:bookId/favourite", app.requireActivatedUser(app.addFavouriteBookHandler))
 	router.HandlerFunc(http.MethodDelete, "/v1/books/:bookId/favourite", app.requireActivatedUser(app.removeFavouriteBookHandler))
 
+	router.HandlerFunc(http.MethodGet, "/v1/categories", app.requireActivatedUser(app.listCategoriesHandler))
+	router.HandlerFunc(http.MethodGet, "/v1/categories/:categoryId", app.requireActivatedUser(app.showCategoryHandler))
+
 	router.HandlerFunc(http.MethodGet, "/v1/books/:bookId/reviews", app.requireActivatedUser(app.listReviewsHandler))
 	router.HandlerFunc(http.MethodPost, "/v1/books/:bookId/reviews", app.requireActivatedUser(app.createReviewHandler))
 	router.HandlerFunc(http.MethodGet, "/v1/books/:bookId/reviews/:reviewId", app.requireActivatedUser(app.showReviewHandler))

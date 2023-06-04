@@ -13,21 +13,23 @@ var (
 // Models is a convenient single 'container' which holds and represents
 // all database models for the application.
 type Models struct {
-	Books     BookModel
-	Reviews   ReviewModel
-	Booklists BooklistModel
-	Comments  CommentModel
-	Tokens    TokenModel
-	Users     UserModel
+	Books      BookModel
+	Categories CategoryModel
+	Reviews    ReviewModel
+	Booklists  BooklistModel
+	Comments   CommentModel
+	Tokens     TokenModel
+	Users      UserModel
 }
 
 func NewModels(db *sql.DB) *Models {
 	return &Models{
-		Books:     BookModel{DB: db},
-		Reviews:   ReviewModel{DB: db},
-		Booklists: BooklistModel{DB: db},
-		Comments:  CommentModel{DB: db},
-		Tokens:    TokenModel{DB: db},
-		Users:     UserModel{DB: db},
+		Books:      BookModel{DB: db},
+		Categories: CategoryModel{DB: db},
+		Reviews:    ReviewModel{DB: db},
+		Booklists:  BooklistModel{DB: db},
+		Comments:   CommentModel{DB: db},
+		Tokens:     TokenModel{DB: db},
+		Users:      UserModel{DB: db},
 	}
 }
