@@ -257,3 +257,26 @@ func (app *application) background(fn func()) {
 		fn()
 	}()
 }
+
+// fetchRemoteResource fetches data from a remote resource using a HTTP client
+func (app *application) fetchRemoteResource(client *http.Client, url string, data interface{}) error {
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	r, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer r.Body.Close()
+	bytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(bytes, &data)
+	if err != nil {
+		return err
+	}
+	return nil
+}

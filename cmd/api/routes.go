@@ -49,6 +49,8 @@ func (app *application) routes() http.Handler {
 
 	router.HandlerFunc(http.MethodPost, "/v1/booklists/:booklistId/comments/:commentId", app.requireActivatedUser(app.createCommentReplyHandler))
 
+	router.HandlerFunc(http.MethodPost, "/v1/requests", app.requireActivatedUser(app.createRequestHandler))
+
 	router.HandlerFunc(http.MethodGet, "/v1/users/favourite-books", app.requireActivatedUser(app.listFavouriteBooksHandler))
 	router.HandlerFunc(http.MethodGet, "/v1/users/favourite-booklists", app.requireActivatedUser(app.listFavouriteBooklistsHandler))
 	router.HandlerFunc(http.MethodGet, "/v1/users/books", app.requireActivatedUser(app.listUsersBooksHandler))

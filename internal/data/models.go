@@ -18,6 +18,7 @@ type Models struct {
 	Reviews    ReviewModel
 	Booklists  BooklistModel
 	Comments   CommentModel
+	Requests   RequestModel
 	Tokens     TokenModel
 	Users      UserModel
 }
@@ -29,6 +30,7 @@ func NewModels(db *sql.DB) *Models {
 		Reviews:    ReviewModel{DB: db},
 		Booklists:  BooklistModel{DB: db},
 		Comments:   CommentModel{DB: db},
+		Requests:   RequestModel{DB: db},
 		Tokens:     TokenModel{DB: db},
 		Users:      UserModel{DB: db},
 	}
