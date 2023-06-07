@@ -1,9 +1,11 @@
 package main
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/emzola/bibliotheca/internal/data"
 	"github.com/emzola/bibliotheca/internal/validator"
@@ -62,12 +64,70 @@ func (app *application) createRequestHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	request.Year = int32(year)
+	request.Expiry = time.Now().Add(time.Hour * 24 * 182)
+	request.Status = "active"
 	err = app.models.Requests.Insert(request)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
+	// Add the new request to the users_requests table
+	err = app.models.Requests.AddForUser(user.ID, request.ID, request.Expiry)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrDuplicateRequest):
+			app.recordAlreadyExistsResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	// Update requests waitlist
+	waitlist, err := app.models.Requests.GetWaitlist(int32(request.ID))
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	request.Waitlist = waitlist
+	err = app.models.Requests.Update(request)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrEditConflict):
+			app.editConflictResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
 	err = app.encodeJSON(w, http.StatusCreated, envelope{"request": request}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) listUserRequestsHandler(w http.ResponseWriter, r *http.Request) {
+	user := app.contextGetUser(r)
+	var input struct {
+		Status  string
+		Filters data.Filters
+	}
+	v := validator.New()
+	qs := r.URL.Query()
+	input.Filters.Page = app.readInt(qs, "page", 1, v)
+	input.Filters.PageSize = app.readInt(qs, "page_size", 10, v)
+	input.Status = app.readString(qs, "status", "active")
+	input.Filters.Sort = app.readString(qs, "sort", "-datetime")
+	input.Filters.SortSafeList = []string{"datetime", "status", "-datetime", "-status"}
+	if data.ValidateFilters(v, input.Filters); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+	requests, metadata, err := app.models.Requests.GetAllForUser(user.ID, input.Filters)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	err = app.encodeJSON(w, http.StatusOK, envelope{"requests": requests, "metadata": metadata}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

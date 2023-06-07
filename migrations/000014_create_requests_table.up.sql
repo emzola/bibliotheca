@@ -8,5 +8,7 @@ CREATE TABLE IF NOT EXISTS requests (
     year integer NOT NULL DEFAULT 0,
     language text NOT NULL DEFAULT '',
     waitlist integer NOT NULL DEFAULT 0,
-    created_at timestamp(0) with time zone NOT NULL DEFAULT NOW()
+    expiry timestamp(0) with time zone NOT NULL,
+    created_at timestamp(0) with time zone NOT NULL DEFAULT NOW(),
+    version integer NOT NULL DEFAULT 1
 );
