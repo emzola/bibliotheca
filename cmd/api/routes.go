@@ -50,13 +50,16 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPost, "/v1/booklists/:booklistId/comments/:commentId", app.requireActivatedUser(app.createCommentReplyHandler))
 
 	router.HandlerFunc(http.MethodPost, "/v1/requests", app.requireActivatedUser(app.createRequestHandler))
-	router.HandlerFunc(http.MethodGet, "/v1/users/requests", app.requireActivatedUser(app.listUserRequestsHandler))
+	router.HandlerFunc(http.MethodGet, "/v1/requests/:requestId", app.requireActivatedUser(app.showRequestHandler))
+	router.HandlerFunc(http.MethodPost, "/v1/requests/:requestId/subscribe", app.requireActivatedUser(app.subscribeRequestHandler))
+	router.HandlerFunc(http.MethodDelete, "/v1/requests/:requestId/unsubscribe", app.requireActivatedUser(app.unsubscribeRequestHandler))
 
 	router.HandlerFunc(http.MethodGet, "/v1/users/favourite-books", app.requireActivatedUser(app.listFavouriteBooksHandler))
 	router.HandlerFunc(http.MethodGet, "/v1/users/favourite-booklists", app.requireActivatedUser(app.listFavouriteBooklistsHandler))
 	router.HandlerFunc(http.MethodGet, "/v1/users/books", app.requireActivatedUser(app.listUsersBooksHandler))
 	router.HandlerFunc(http.MethodGet, "/v1/users/booklists", app.requireActivatedUser(app.listUserBooklistsHandler))
 	router.HandlerFunc(http.MethodGet, "/v1/users/downloads", app.requireActivatedUser(app.listUserDownloadsHandler))
+	router.HandlerFunc(http.MethodGet, "/v1/users/requests", app.requireActivatedUser(app.listUserRequestsHandler))
 
 	router.HandlerFunc(http.MethodPost, "/v1/users", app.registerUserHandler)
 	router.HandlerFunc(http.MethodPut, "/v1/users/activated", app.activateUserHandler)

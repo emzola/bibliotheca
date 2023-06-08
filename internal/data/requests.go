@@ -44,19 +44,20 @@ type Language struct {
 
 // The Request struct contains the data fields for a Request.
 type Request struct {
-	ID        int64     `json:"id,omitempty"`
-	UserID    int64     `json:"user_id,omitempty"`
-	Title     string    `json:"title,omitempty"`
-	Author    []string  `json:"author,omitempty"`
-	Publisher string    `json:"publisher,omitempty"`
-	Isbn      string    `json:"isbn,omitempty"`
-	Year      int32     `json:"year,omitempty"`
-	Language  string    `json:"language,omitempty"`
-	Waitlist  int32     `json:"waitlist,omitempty"`
-	Expiry    time.Time `json:"expiry,omitempty"`
-	Status    string    `json:"status,omitempty"`
-	CreatedAt time.Time `json:"created_at,omitempty"`
-	Version   int32     `json:"-"`
+	ID                 int64     `json:"id,omitempty"`
+	UserID             int64     `json:"user_id,omitempty"`
+	Title              string    `json:"title,omitempty"`
+	Author             []string  `json:"author,omitempty"`
+	Publisher          string    `json:"publisher,omitempty"`
+	Isbn               string    `json:"isbn,omitempty"`
+	Year               int32     `json:"year,omitempty"`
+	Language           string    `json:"language,omitempty"`
+	Expiry             time.Time `json:"expiry,omitempty"`
+	Status             string    `json:"status,omitempty"`
+	CreatedAt          time.Time `json:"created_at,omitempty"`
+	Waitlist           int32     `json:"waitlist,omitempty"`
+	SubscriptionExpiry time.Time `json:"subscription_expiry,omitempty"`
+	Version            int32     `json:"-"`
 }
 
 // The RequestModel struct wraps a sql.DB connection pool for Request.
@@ -85,6 +86,42 @@ func (m RequestModel) Insert(request *Request) error {
 	return m.DB.QueryRowContext(ctx, query, args...).Scan(&request.ID, &request.CreatedAt, &request.Version)
 }
 
+func (m RequestModel) Get(id int64) (*Request, error) {
+	if id < 1 {
+		return nil, ErrRecordNotFound
+	}
+	query := `
+		SELECT id, user_id, title, author, publisher, isbn, year, language, expiry, status, created_at, version
+		FROM requests 
+		WHERE id = $1`
+	var request Request
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	err := m.DB.QueryRowContext(ctx, query, id).Scan(
+		&request.ID,
+		&request.UserID,
+		&request.Title,
+		pq.Array(request.Author),
+		&request.Publisher,
+		&request.Isbn,
+		&request.Year,
+		&request.Language,
+		&request.Expiry,
+		&request.Status,
+		&request.CreatedAt,
+		&request.Version,
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+	return &request, nil
+}
+
 func (m RequestModel) AddForUser(userID, requestID int64, expiry time.Time) error {
 	query := `
 		INSERT INTO users_requests (user_id, request_id, expiry)
@@ -104,28 +141,52 @@ func (m RequestModel) AddForUser(userID, requestID int64, expiry time.Time) erro
 	return nil
 }
 
-func (m RequestModel) GetWaitlist(requestID int32) (int32, error) {
+func (m RequestModel) DeleteForUser(userID, requestID int64) error {
+	if userID < 1 || requestID < 1 {
+		return ErrRecordNotFound
+	}
 	query := `
-		SELECT Count(*)
-		FROM users_requests
-		WHERE request_id = $1`
-	var waitlist int32
+		DELETE FROM users_requests
+		WHERE user_id = $1 AND request_id = $2`
+	args := []interface{}{userID, requestID}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	err := m.DB.QueryRowContext(ctx, query, requestID).Scan(
-		&waitlist,
-	)
+	result, err := m.DB.ExecContext(ctx, query, args...)
 	if err != nil {
-		return 0, err
+		return err
 	}
-	return waitlist, nil
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return ErrRecordNotFound
+	}
+	return nil
 }
+
+// func (m RequestModel) GetWaitlist(requestID int32) (int32, error) {
+// 	query := `
+// 		SELECT Count(*)
+// 		FROM users_requests
+// 		WHERE request_id = $1`
+// 	var waitlist int32
+// 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+// 	defer cancel()
+// 	err := m.DB.QueryRowContext(ctx, query, requestID).Scan(
+// 		&waitlist,
+// 	)
+// 	if err != nil {
+// 		return 0, err
+// 	}
+// 	return waitlist, nil
+// }
 
 func (m RequestModel) Update(request *Request) error {
 	query := `
 		UPDATE requests
-		SET title = $1, author = $2, publisher = $3, isbn = $4, year = $5, language = $6, waitlist = $7, expiry = $8, status = $9, version = version + 1
-		WHERE id = $10 AND version = $11
+		SET title = $1, author = $2, publisher = $3, isbn = $4, year = $5, language = $6, expiry = $7, status = $8, version = version + 1
+		WHERE id = $9 AND version = $10
 		RETURNING version`
 	args := []interface{}{
 		request.Title,
@@ -134,7 +195,6 @@ func (m RequestModel) Update(request *Request) error {
 		request.Isbn,
 		request.Year,
 		request.Language,
-		request.Waitlist,
 		request.Expiry,
 		request.Status,
 		request.ID,
@@ -154,18 +214,23 @@ func (m RequestModel) Update(request *Request) error {
 	return nil
 }
 
-func (m RequestModel) GetAllForUser(userID int64, filters Filters) ([]*Request, Metadata, error) {
+func (m RequestModel) GetAllForUser(userID int64, status string, filters Filters) ([]*Request, Metadata, error) {
 	query := fmt.Sprintf(`
-		SELECT count(*) OVER(), requests.id, requests.user_id, requests.title, requests.author, requests.publisher, requests.isbn, requests.year, requests.language, requests.waitlist, requests.expiry, requests.status, requests.created_at, requests.version
+		SELECT count(*) OVER(), requests.id, requests.user_id, requests.title, requests.author, requests.publisher, 
+		requests.isbn, requests.year, requests.language, requests.expiry, requests.status, 
+		requests.created_at, requests.version, COUNT(users_requests.user_id), users_requests.expiry
 		FROM requests
-		INNER JOIN users_requests ON users_requests.request_id = requests.id
-		INNER JOIN users ON users_requests.user_id = users.id
-		WHERE users.id = $1
+		LEFT JOIN users_requests ON users_requests.request_id = requests.id
+		LEFT JOIN users ON users_requests.user_id = users.id
+		WHERE users.id = $1 AND (LOWER(requests.status) = LOWER($2) OR $2 = '') 
+		GROUP BY requests.id, requests.user_id, requests.title, requests.author, requests.publisher, 
+		requests.isbn, requests.year, requests.language, requests.expiry, requests.status, 
+		requests.created_at, requests.version, users_requests.expiry, users_requests.datetime 
 		ORDER BY %s %s, datetime DESC
-		LIMIT $2 OFFSET $3`,
+		LIMIT $3 OFFSET $4`,
 		filters.sortColumn(), filters.sortDirection(),
 	)
-	args := []interface{}{userID, filters.limit(), filters.offset()}
+	args := []interface{}{userID, status, filters.limit(), filters.offset()}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	rows, err := m.DB.QueryContext(ctx, query, args...)
@@ -187,11 +252,12 @@ func (m RequestModel) GetAllForUser(userID int64, filters Filters) ([]*Request, 
 			&request.Isbn,
 			&request.Year,
 			&request.Language,
-			&request.Waitlist,
 			&request.Expiry,
 			&request.Status,
 			&request.CreatedAt,
 			&request.Version,
+			&request.Waitlist,
+			&request.SubscriptionExpiry,
 		)
 		if err != nil {
 			return nil, Metadata{}, err
