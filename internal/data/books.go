@@ -16,6 +16,8 @@ var (
 	ErrDuplicateBookDownload  = errors.New("duplicate book download")
 )
 
+const DailyDownloadLimit int8 = 10
+
 // The Book struct contains the data fields for a book.
 type Book struct {
 	ID          int64     `json:"id"`
@@ -476,6 +478,52 @@ func (m BookModel) RemoveDownloadForUser(userID, bookID int64) error {
 		return ErrRecordNotFound
 	}
 	return nil
+}
+
+func (m BookModel) GetDownloadForUser(userID, bookID int64) (*Book, error) {
+	query := `
+		SELECT books.id, books.user_id, books.created_at, books.title, books.description, books.author, books.category, books.publisher, books.language, books.series, books.volume, books.edition, books.year, books.page_count, books.isbn_10, books.isbn_13, books.cover_path, books.s3_file_key, books.fname, books.extension, books.size, books.popularity, books.version
+		FROM books
+		INNER JOIN users_downloads ON users_downloads.book_id = books.id
+		INNER JOIN users ON users_downloads.user_id = users.id
+		WHERE users.id = $1 AND books.id = $2`
+	var book Book
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	err := m.DB.QueryRowContext(ctx, query, userID, bookID).Scan(
+		&book.ID,
+		&book.UserID,
+		&book.CreatedAt,
+		&book.Title,
+		&book.Description,
+		pq.Array(&book.Author),
+		&book.Category,
+		&book.Publisher,
+		&book.Language,
+		&book.Series,
+		&book.Volume,
+		&book.Edition,
+		&book.Year,
+		&book.PageCount,
+		&book.Isbn10,
+		&book.Isbn13,
+		&book.CoverPath,
+		&book.S3FileKey,
+		&book.Filename,
+		&book.Extension,
+		&book.Size,
+		&book.Popularity,
+		&book.Version,
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+	return &book, nil
 }
 
 func (m BookModel) GetAllDownloadsForUser(userID int64, fromDate, toDate string, filters Filters) ([]*Book, Metadata, error) {

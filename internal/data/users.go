@@ -18,13 +18,14 @@ var AnonymousUser = &User{}
 
 // The User struct contains the data fields for a user.
 type User struct {
-	ID        int64     `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
-	Name      string    `json:"name"`
-	Email     string    `json:"email"`
-	Password  password  `json:"-"`
-	Activated bool      `json:"activated"`
-	Version   int32     `json:"-"`
+	ID            int64     `json:"id"`
+	CreatedAt     time.Time `json:"created_at"`
+	Name          string    `json:"name"`
+	Email         string    `json:"email"`
+	Password      password  `json:"-"`
+	Activated     bool      `json:"activated"`
+	DownloadCount int8      `json:"-"`
+	Version       int32     `json:"-"`
 }
 
 // Check if a user instance is the anonymous user
@@ -120,12 +121,40 @@ func (m UserModel) Insert(user *User) error {
 	return nil
 }
 
+func (m *UserModel) Get(id int64) (*User, error) {
+	query := `
+		SELECT id, created_at, name, email, password_hash, activated, download_count, version
+		FROM users
+		WHERE id = $1`
+	var user User
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	err := m.DB.QueryRowContext(ctx, query, id).Scan(
+		&user.ID,
+		&user.CreatedAt,
+		&user.Name,
+		&user.Email,
+		&user.Password.hash,
+		&user.Activated,
+		&user.DownloadCount,
+		&user.Version,
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+	return &user, nil
+}
+
 func (m *UserModel) GetByEmail(email string) (*User, error) {
 	query := `
-		SELECT id, created_at, name, email, password_hash, activated, version
+		SELECT id, created_at, name, email, password_hash, activated, download_count, version
 		FROM users
 		WHERE email = $1`
-
 	var user User
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -136,6 +165,7 @@ func (m *UserModel) GetByEmail(email string) (*User, error) {
 		&user.Email,
 		&user.Password.hash,
 		&user.Activated,
+		&user.DownloadCount,
 		&user.Version,
 	)
 	if err != nil {
@@ -144,7 +174,6 @@ func (m *UserModel) GetByEmail(email string) (*User, error) {
 			return nil, ErrRecordNotFound
 		default:
 			return nil, err
-
 		}
 	}
 	return &user, nil
@@ -153,14 +182,15 @@ func (m *UserModel) GetByEmail(email string) (*User, error) {
 func (m *UserModel) Update(user *User) error {
 	query := `
 		UPDATE users
-		SET name = $1, email = $2, password_hash = $3, activated = $4, version = version + 1
-		WHERE id = $5 AND version = $6
+		SET name = $1, email = $2, password_hash = $3, activated = $4, download_count = $5, version = version + 1
+		WHERE id = $6 AND version = $7
 		RETURNING version`
 	args := []interface{}{
 		user.Name,
 		user.Email,
 		user.Password.hash,
 		user.Activated,
+		user.DownloadCount,
 		user.ID,
 		user.Version,
 	}

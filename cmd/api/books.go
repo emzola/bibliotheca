@@ -352,6 +352,23 @@ func (app *application) updateBookCoverHandler(w http.ResponseWriter, r *http.Re
 }
 
 func (app *application) downloadBookHandler(w http.ResponseWriter, r *http.Request) {
+	userId := app.contextGetUser(r).ID
+	user, err := app.models.Users.Get(userId)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	// Check user's daily download limit. If it exceeds daily limit, do nothing further
+	if user.DownloadCount >= data.DailyDownloadLimit {
+		app.notPermittedResponse(w, r)
+		return
+	}
+	// Otherwise, proceed with other actions as normal
 	id, err := app.readIDParam(r, "bookId")
 	if err != nil || id < 1 {
 		app.notFoundResponse(w, r)
@@ -370,18 +387,44 @@ func (app *application) downloadBookHandler(w http.ResponseWriter, r *http.Reque
 	err = app.downloadFileFromS3(app.config.s3.client, book)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
+		return
 	}
-	// Add download record to downloads table
-	user := app.contextGetUser(r)
+	// Add record to downloads table
 	err = app.models.Books.AddDownloadForUser(user.ID, book.ID)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrDuplicateBookDownload):
-			app.recordAlreadyExistsResponse(w, r)
+			err := app.models.Books.RemoveDownloadForUser(user.ID, book.ID)
+			if err != nil {
+				switch {
+				case errors.Is(err, data.ErrRecordNotFound):
+					app.notFoundResponse(w, r)
+				default:
+					app.serverErrorResponse(w, r, err)
+				}
+				return
+			}
+			err = app.models.Books.AddDownloadForUser(user.ID, book.ID)
+			if err != nil {
+				app.serverErrorResponse(w, r, err)
+				return
+			}
 		default:
 			app.serverErrorResponse(w, r, err)
+			return
 		}
+	}
+	// Increase user daily download count
+	user.DownloadCount++
+	err = app.models.Users.Update(user)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
 		return
+	}
+	// Encode response to JSON as usual
+	err = app.encodeJSON(w, http.StatusOK, envelope{"message": "book successfully downloaded"}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
 	}
 }
 
