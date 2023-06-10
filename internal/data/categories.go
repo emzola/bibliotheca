@@ -49,7 +49,7 @@ func (m CategoryModel) Get(id int64) (*Category, error) {
 
 func (m CategoryModel) GetAll() ([]*Category, error) {
 	query := `
-		SELECT categories.id, categories.name, COUNT(books_categories.book_id)
+		SELECT categories.id, categories.name, count(books_categories.book_id)
 		FROM categories
 		LEFT JOIN books_categories ON books_categories.category_id = categories.id
 		GROUP BY categories.id 

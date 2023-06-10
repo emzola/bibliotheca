@@ -49,6 +49,7 @@ func (app *application) routes() http.Handler {
 
 	router.HandlerFunc(http.MethodPost, "/v1/booklists/:booklistId/comments/:commentId", app.requireActivatedUser(app.createCommentReplyHandler))
 
+	router.HandlerFunc(http.MethodGet, "/v1/requests", app.requireActivatedUser(app.listRequestsHandler))
 	router.HandlerFunc(http.MethodPost, "/v1/requests", app.requireActivatedUser(app.createRequestHandler))
 	router.HandlerFunc(http.MethodGet, "/v1/requests/:requestId", app.requireActivatedUser(app.showRequestHandler))
 	router.HandlerFunc(http.MethodPost, "/v1/requests/:requestId/subscribe", app.requireActivatedUser(app.subscribeRequestHandler))

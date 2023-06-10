@@ -34,30 +34,12 @@ func (app *application) createRequestHandler(w http.ResponseWriter, r *http.Requ
 		app.serverErrorResponse(w, r, err)
 		return
 	}
-	// Fetch Author data from openlibrary api
-	author := &data.Author{}
-	url = "https://openlibrary.org" + bookJSON.Author[0].Key + ".json"
-	err = app.fetchRemoteResource(app.client(), url, &author)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
-	}
-	// Fetch Language data from openlibrary api
-	language := &data.Language{}
-	url = "https://openlibrary.org" + bookJSON.Language[0].Key + ".json"
-	err = app.fetchRemoteResource(app.client(), url, &language)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-		return
-	}
 	user := app.contextGetUser(r)
 	request := &data.Request{}
 	request.UserID = user.ID
 	request.Title = bookJSON.Title
-	request.Author = []string{author.Name}
 	request.Publisher = bookJSON.Publisher[0]
 	request.Isbn = input.Isbn
-	request.Language = language.Name
 	dateString := strings.Split(bookJSON.Date, ",")
 	year, err := strconv.Atoi(strings.TrimSpace(dateString[1]))
 	if err != nil {
@@ -78,6 +60,18 @@ func (app *application) createRequestHandler(w http.ResponseWriter, r *http.Requ
 		switch {
 		case errors.Is(err, data.ErrDuplicateRequest):
 			app.recordAlreadyExistsResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	// Update request waitlist
+	request.Waitlist++
+	err = app.models.Requests.Update(request)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrEditConflict):
+			app.editConflictResponse(w, r)
 		default:
 			app.serverErrorResponse(w, r, err)
 		}
@@ -109,6 +103,43 @@ func (app *application) showRequestHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	err = app.encodeJSON(w, http.StatusOK, envelope{"request": request}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) listRequestsHandler(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Title     string
+		Author    []string
+		Isbn      string
+		Publisher string
+		Language  []string
+		Status    string
+		Filters   data.Filters
+	}
+	v := validator.New()
+	qs := r.URL.Query()
+	input.Title = app.readString(qs, "title", "")
+	input.Author = app.readCSV(qs, "author", []string{})
+	input.Isbn = app.readString(qs, "isbn", "")
+	input.Publisher = app.readString(qs, "publisher", "")
+	input.Language = app.readCSV(qs, "language", []string{})
+	input.Filters.Page = app.readInt(qs, "page", 1, v)
+	input.Filters.PageSize = app.readInt(qs, "page_size", 10, v)
+	input.Status = app.readString(qs, "status", "active")
+	input.Filters.Sort = app.readString(qs, "sort", "-id")
+	input.Filters.SortSafeList = []string{"id", "-id"}
+	if data.ValidateFilters(v, input.Filters); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+	requests, metadata, err := app.models.Requests.GetAll(input.Title, input.Isbn, input.Publisher, input.Status, input.Filters)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	err = app.encodeJSON(w, http.StatusOK, envelope{"requests": requests, "metadata": metadata}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
@@ -148,6 +179,16 @@ func (app *application) subscribeRequestHandler(w http.ResponseWriter, r *http.R
 		app.badRequestResponse(w, r, err)
 		return
 	}
+	request, err := app.models.Requests.Get(requestId)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
 	user := app.contextGetUser(r)
 	err = app.models.Requests.AddForUser(user.ID, requestId, time.Now().Add(time.Hour*24*182))
 	if err != nil {
@@ -159,7 +200,18 @@ func (app *application) subscribeRequestHandler(w http.ResponseWriter, r *http.R
 		}
 		return
 	}
-
+	// Update request waitlist
+	request.Waitlist++
+	err = app.models.Requests.Update(request)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrEditConflict):
+			app.editConflictResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
 	err = app.encodeJSON(w, http.StatusOK, envelope{"message": "you've successfully subscribed to this book request"}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
@@ -172,12 +224,34 @@ func (app *application) unsubscribeRequestHandler(w http.ResponseWriter, r *http
 		app.badRequestResponse(w, r, err)
 		return
 	}
+	request, err := app.models.Requests.Get(requestId)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
 	user := app.contextGetUser(r)
 	err = app.models.Requests.DeleteForUser(user.ID, requestId)
 	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
 			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	// Update request waitlist
+	request.Waitlist--
+	err = app.models.Requests.Update(request)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrEditConflict):
+			app.editConflictResponse(w, r)
 		default:
 			app.serverErrorResponse(w, r, err)
 		}
