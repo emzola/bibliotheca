@@ -187,7 +187,11 @@ func (app *application) uploadFileToS3(client *s3.Client, buffer []byte, mtype *
 
 // downloadFileFromS3 downloads a file from the aws s3 bucket.
 func (app *application) downloadFileFromS3(client *s3.Client, book *data.Book) error {
-	filename := book.Filename
+	// Set file name to follow the format: title (author[s]) ext
+	// e.g Animal Farm (George Orwell).pdf
+	author := strings.Join(book.Author, " ")
+	filename := book.Title + " (" + author + ")" + "." + strings.ToLower(book.Extension)
+
 	newFile, err := os.Create(filename)
 	if err != nil {
 		return err
