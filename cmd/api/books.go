@@ -384,11 +384,14 @@ func (app *application) downloadBookHandler(w http.ResponseWriter, r *http.Reque
 		}
 		return
 	}
-	err = app.downloadFileFromS3(app.config.s3.client, book)
-	if err != nil {
-		app.badRequestResponse(w, r, err)
-		return
-	}
+	// Download book in a background goroutine to speed up response time
+	app.background(func() {
+		err = app.downloadFileFromS3(app.config.s3.client, book)
+		if err != nil {
+			app.badRequestResponse(w, r, err)
+			return
+		}
+	})
 	// Add record to downloads table
 	err = app.models.Books.AddDownloadForUser(user.ID, book.ID)
 	if err != nil {
