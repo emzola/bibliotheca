@@ -55,6 +55,11 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPost, "/v1/requests/:requestId/subscribe", app.requireActivatedUser(app.subscribeRequestHandler))
 	router.HandlerFunc(http.MethodDelete, "/v1/requests/:requestId/unsubscribe", app.requireActivatedUser(app.unsubscribeRequestHandler))
 
+	router.HandlerFunc(http.MethodGet, "/v1/users/profile", app.requireActivatedUser(app.showUserHandler))
+	router.HandlerFunc(http.MethodPatch, "/v1/users/profile", app.requireActivatedUser(app.updateUserHandler))
+	router.HandlerFunc(http.MethodPut, "/v1/users/profile", app.requireActivatedUser(app.updateUserPasswordHandler))
+	router.HandlerFunc(http.MethodDelete, "/v1/users/profile", app.requireActivatedUser(app.deleteUserHandler))
+
 	router.HandlerFunc(http.MethodGet, "/v1/users/favourite-books", app.requireActivatedUser(app.listFavouriteBooksHandler))
 	router.HandlerFunc(http.MethodGet, "/v1/users/favourite-booklists", app.requireActivatedUser(app.listFavouriteBooklistsHandler))
 	router.HandlerFunc(http.MethodGet, "/v1/users/books", app.requireActivatedUser(app.listUsersBooksHandler))
@@ -64,7 +69,7 @@ func (app *application) routes() http.Handler {
 
 	router.HandlerFunc(http.MethodPost, "/v1/users", app.registerUserHandler)
 	router.HandlerFunc(http.MethodPut, "/v1/users/activated", app.activateUserHandler)
-	router.HandlerFunc(http.MethodPut, "/v1/users/password", app.updateUserPasswordHandler)
+	router.HandlerFunc(http.MethodPut, "/v1/users/password", app.resetUserPasswordHandler)
 
 	router.HandlerFunc(http.MethodPost, "/v1/tokens/activation", app.createActivationTokenHandler)
 	router.HandlerFunc(http.MethodPost, "/v1/tokens/password-reset", app.createPasswordResetTokenHandler)

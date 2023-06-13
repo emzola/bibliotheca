@@ -118,7 +118,7 @@ func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-func (app *application) updateUserPasswordHandler(w http.ResponseWriter, r *http.Request) {
+func (app *application) resetUserPasswordHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		Password       string `json:"password"`
 		TokenPlaintext string `json:"token"`
@@ -164,7 +164,183 @@ func (app *application) updateUserPasswordHandler(w http.ResponseWriter, r *http
 		app.serverErrorResponse(w, r, err)
 		return
 	}
+	// Send password change notification email in a background goroutine to speed up response time
+	app.background(func() {
+		data := map[string]string{
+			"userName": strings.Split(user.Name, " ")[0],
+		}
+		err = app.mailer.Send(user.Email, "user_password_change.tmpl", data)
+		if err != nil {
+			app.logger.PrintError(err, nil)
+		}
+	})
 	err = app.encodeJSON(w, http.StatusOK, envelope{"message": "your password was successfully reset"}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) showUserHandler(w http.ResponseWriter, r *http.Request) {
+	userId := app.contextGetUser(r).ID
+	user, err := app.models.Users.Get(userId)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	err = app.encodeJSON(w, http.StatusOK, envelope{"user": user}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) updateUserHandler(w http.ResponseWriter, r *http.Request) {
+	userId := app.contextGetUser(r).ID
+	user, err := app.models.Users.Get(userId)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	var input struct {
+		Name  *string `json:"name"`
+		Email *string `json:"email"`
+	}
+	err = app.decodeJSON(w, r, &input)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	if input.Name != nil {
+		user.Name = *input.Name
+	}
+	if input.Email != nil {
+		user.Email = *input.Email
+	}
+	v := validator.New()
+	data.ValidateName(v, user.Name)
+	data.ValidateEmail(v, user.Email)
+	if !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+	err = app.models.Users.Update(user)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrDuplicateEmail):
+			v.AddError("email", "a user with this email address already exists")
+			app.failedValidationResponse(w, r, v.Errors)
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	err = app.encodeJSON(w, http.StatusOK, envelope{"user": user}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) updateUserPasswordHandler(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		OldPassword        string `json:"old_password"`
+		NewPassword        string `json:"new_password"`
+		ConfirmNewPassword string `json:"confirm_new_password"`
+	}
+	err := app.decodeJSON(w, r, &input)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	v := validator.New()
+	data.ValidatePasswordPlaintext(v, input.OldPassword)
+	data.ValidatePasswordPlaintext(v, input.NewPassword)
+	if !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+	if input.NewPassword != input.ConfirmNewPassword {
+		app.passwordMismatchResponse(w, r)
+		return
+	}
+	userId := app.contextGetUser(r).ID
+	user, err := app.models.Users.Get(userId)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.invalidCredentialsResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	match, err := user.Password.Matches(input.OldPassword)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	if !match {
+		app.invalidCredentialsResponse(w, r)
+		return
+	}
+	err = user.Password.Set(input.NewPassword)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	err = app.models.Users.Update(user)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrDuplicateEmail):
+			v.AddError("email", "a user with this email address already exists")
+			app.failedValidationResponse(w, r, v.Errors)
+		case errors.Is(err, data.ErrEditConflict):
+			app.editConflictResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	// Send password change notification email in a background goroutine to speed up response time
+	app.background(func() {
+		data := map[string]string{
+			"userName": strings.Split(user.Name, " ")[0],
+		}
+		err = app.mailer.Send(user.Email, "user_password_change.tmpl", data)
+		if err != nil {
+			app.logger.PrintError(err, nil)
+		}
+	})
+	//Encode to JSON as usual
+	err = app.encodeJSON(w, http.StatusAccepted, envelope{"user": user}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) deleteUserHandler(w http.ResponseWriter, r *http.Request) {
+	userId := app.contextGetUser(r).ID
+	err := app.models.Users.Delete(userId)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	err = app.encodeJSON(w, http.StatusOK, envelope{"message": "user account successfully deleted"}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

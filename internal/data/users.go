@@ -69,6 +69,10 @@ func (p *password) Matches(plaintextPassword string) (bool, error) {
 	return true, nil
 }
 
+func ValidateName(v *validator.Validator, name string) {
+	v.Check(name != "", "name", "must be provided")
+	v.Check(len(name) <= 500, "name", "must not be more than 500 bytes long")
+}
 func ValidateEmail(v *validator.Validator, email string) {
 	v.Check(email != "", "email", "must be provided")
 	v.Check(validator.Matches(email, validator.EmailRX), "email", "must be a valid email address")
@@ -242,4 +246,27 @@ func (m UserModel) GetForToken(tokenScope, tokenPlaintext string) (*User, error)
 		}
 	}
 	return &user, nil
+}
+
+func (m UserModel) Delete(id int64) error {
+	if id < 1 {
+		return ErrRecordNotFound
+	}
+	query := `
+		DELETE FROM users
+		WHERE id = $1`
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	result, err := m.DB.ExecContext(ctx, query, id)
+	if err != nil {
+		return err
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return ErrRecordNotFound
+	}
+	return nil
 }

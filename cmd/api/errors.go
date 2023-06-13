@@ -101,3 +101,8 @@ func (app *application) recordAlreadyExistsResponse(w http.ResponseWriter, r *ht
 	message := "a record for this resource already exists for your user account"
 	app.errorResponse(w, r, http.StatusUnprocessableEntity, message)
 }
+
+func (app *application) passwordMismatchResponse(w http.ResponseWriter, r *http.Request) {
+	message := "passwords do not match"
+	app.errorResponse(w, r, http.StatusUnprocessableEntity, message)
+}
