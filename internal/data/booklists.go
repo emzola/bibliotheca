@@ -130,6 +130,57 @@ func (m BooklistModel) Delete(id int64) error {
 	return nil
 }
 
+func (m BooklistModel) GetAll(item string, filters Filters) ([]*Booklist, Metadata, error) {
+	query := fmt.Sprintf(`
+		SELECT count(*) OVER(), id, user_id, name, description, private, created_at, updated_at, version
+		FROM booklists  
+		WHERE (
+			to_tsvector('simple', name) || to_tsvector('simple', description)
+			@@ plainto_tsquery('simple', $1) OR $1 = ''
+		)
+		ORDER BY %s %s, id ASC
+		LIMIT $2 OFFSET $3`,
+		filters.sortColumn(), filters.sortDirection(),
+	)
+	args := []interface{}{
+		item,
+		filters.limit(),
+		filters.offset(),
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	rows, err := m.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, Metadata{}, err
+	}
+	defer rows.Close()
+	totalRecords := 0
+	booklists := []*Booklist{}
+	for rows.Next() {
+		var booklist Booklist
+		err := rows.Scan(
+			&totalRecords,
+			&booklist.ID,
+			&booklist.UserID,
+			&booklist.Name,
+			&booklist.Description,
+			&booklist.Private,
+			&booklist.CreatedAt,
+			&booklist.UpdatedAt,
+			&booklist.Version,
+		)
+		if err != nil {
+			return nil, Metadata{}, err
+		}
+		booklists = append(booklists, &booklist)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, Metadata{}, err
+	}
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+	return booklists, metadata, nil
+}
+
 func (m BooklistModel) AddFavouriteForUser(userID, booklistID int64) error {
 	query := `
 		INSERT INTO users_favourite_booklists (user_id, booklist_id)

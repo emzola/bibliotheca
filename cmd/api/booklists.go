@@ -90,9 +90,39 @@ func (app *application) showBooklistHandler(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-// func (app *application) listBooklistsHandler(w http.ResponseWriter, r *http.Request) {
-
-// }
+func (app *application) listBooklistsHandler(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Search  string
+		Filters data.Filters
+	}
+	v := validator.New()
+	qs := r.URL.Query()
+	input.Search = app.readString(qs, "search", "")
+	input.Filters.Page = app.readInt(qs, "page", 1, v)
+	input.Filters.PageSize = app.readInt(qs, "page_size", 10, v)
+	input.Filters.Sort = app.readString(qs, "sort", "id")
+	input.Filters.SortSafeList = []string{"id", "created_at", "updated_at", "-id", "-created_at", "-updated_at"}
+	if data.ValidateFilters(v, input.Filters); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+	booklists, metadata, err := app.models.Booklists.GetAll(input.Search, input.Filters)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	for _, booklist := range booklists {
+		booklist.Content.Books, booklist.Content.Metadata, err = app.models.Books.GetAllForBooklist(booklist.ID, input.Filters)
+		if err != nil {
+			app.serverErrorResponse(w, r, err)
+			return
+		}
+	}
+	err = app.encodeJSON(w, http.StatusOK, envelope{"booklists": booklists, "metadata": metadata}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
 
 // func (app *application) findBooksForBooklistHandler(w http.ResponseWriter, r *http.Request) {
 
@@ -284,6 +314,75 @@ func (app *application) listUserBooklistsHandler(w http.ResponseWriter, r *http.
 		}
 	}
 	err = app.encodeJSON(w, http.StatusOK, envelope{"booklists": booklists, "metadata": metadata}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) addToBooklistHandler(w http.ResponseWriter, r *http.Request) {
+	booklistId, err := app.readIDParam(r, "booklistId")
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+	booklist, err := app.models.Booklists.Get(booklistId)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	bookId, err := app.readIDParam(r, "bookId")
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+	err = app.models.Books.AddToBooklist(booklist.ID, bookId)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	err = app.models.Booklists.Update(booklist)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrEditConflict):
+			app.editConflictResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	err = app.encodeJSON(w, http.StatusOK, envelope{"message": "book successfully added to booklist"}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) deleteFromBooklistHandler(w http.ResponseWriter, r *http.Request) {
+	booklistId, err := app.readIDParam(r, "booklistId")
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+	bookId, err := app.readIDParam(r, "bookId")
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+	err = app.models.Books.RemoveFromBooklist(booklistId, bookId)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	err = app.encodeJSON(w, http.StatusOK, envelope{"message": "book successfully removed from booklist"}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
