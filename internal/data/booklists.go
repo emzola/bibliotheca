@@ -20,9 +20,16 @@ type Booklist struct {
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 	Private     bool      `json:"private"`
+	Content     Books     `json:"content,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 	Version     int32     `json:"-"`
+}
+
+// The Books struct contains the books and metadata content of a specific booklist
+type Books struct {
+	Books    []*Book  `json:"books,omitempty"`
+	Metadata Metadata `json:"metadata,omitempty"`
 }
 
 func ValidateBooklist(v *validator.Validator, booklist *Booklist) {

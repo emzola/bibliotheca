@@ -38,15 +38,16 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPost, "/v1/booklists", app.requireActivatedUser(app.createBooklistHandler))
 	router.HandlerFunc(http.MethodGet, "/v1/booklists/:booklistId", app.requireActivatedUser(app.showBooklistHandler))
 	router.HandlerFunc(http.MethodPatch, "/v1/booklists/:booklistId", app.requireBooklistOwnerPermission(app.updateBooklistHandler))
-	// router.HandlerFunc(http.MethodPost, "/v1/booklists/:booklistId/book", app.requireBooklistOwnerPermission(app.addBookToBooklistHandler))
 	router.HandlerFunc(http.MethodDelete, "/v1/booklists/:booklistId", app.requireBooklistOwnerPermission(app.deleteBooklistHandler))
+	router.HandlerFunc(http.MethodPost, "/v1/booklists/:booklistId/books/:bookId", app.requireBooklistOwnerPermission(app.addToBooklistHandler))
+	// router.HandlerFunc(http.MethodGet, "/v1/booklists/:booklistId/books", app.requireActivatedUser(app.findBooksForBooklistHandler))
+	router.HandlerFunc(http.MethodDelete, "/v1/booklists/:booklistId/books/:bookId", app.requireBooklistOwnerPermission(app.deleteFromBooklistHandler))
 	router.HandlerFunc(http.MethodPost, "/v1/booklists/:booklistId/favourite", app.requireActivatedUser(app.addFavouriteBooklistHandler))
 	router.HandlerFunc(http.MethodDelete, "/v1/booklists/:booklistId/favourite", app.requireActivatedUser(app.removeFavouriteBooklistHandler))
 	router.HandlerFunc(http.MethodGet, "/v1/booklists/:booklistId/comments", app.requireActivatedUser(app.listCommentsHandler))
 	router.HandlerFunc(http.MethodPost, "/v1/booklists/:booklistId/comments", app.requireActivatedUser(app.createCommentHandler))
 	router.HandlerFunc(http.MethodPatch, "/v1/booklists/:booklistId/comments", app.requireCommentOwnerPermission(app.updateCommentHandler))
 	router.HandlerFunc(http.MethodDelete, "/v1/booklists/:booklistId/comments", app.requireCommentOwnerPermission(app.deleteCommentHandler))
-
 	router.HandlerFunc(http.MethodPost, "/v1/booklists/:booklistId/comments/:commentId", app.requireActivatedUser(app.createCommentReplyHandler))
 
 	router.HandlerFunc(http.MethodGet, "/v1/requests", app.requireActivatedUser(app.listRequestsHandler))

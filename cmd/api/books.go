@@ -603,3 +603,52 @@ func (app *application) deleteBookFromDownloadsHandler(w http.ResponseWriter, r 
 		app.serverErrorResponse(w, r, err)
 	}
 }
+
+func (app *application) addToBooklistHandler(w http.ResponseWriter, r *http.Request) {
+	booklistId, err := app.readIDParam(r, "booklistId")
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+	bookId, err := app.readIDParam(r, "bookId")
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+	err = app.models.Books.AddToBooklist(booklistId, bookId)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	err = app.encodeJSON(w, http.StatusOK, envelope{"message": "book successfully added to booklist"}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) deleteFromBooklistHandler(w http.ResponseWriter, r *http.Request) {
+	booklistId, err := app.readIDParam(r, "booklistId")
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+	bookId, err := app.readIDParam(r, "bookId")
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+	err = app.models.Books.RemoveFromBooklist(booklistId, bookId)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	err = app.encodeJSON(w, http.StatusOK, envelope{"message": "book successfully removed from booklist"}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}

@@ -12,6 +12,7 @@ import (
 )
 
 var (
+	ErrDuplicateBook          = errors.New("duplicate book")
 	ErrDuplicateBookFavourite = errors.New("duplicate book favourite")
 	ErrDuplicateBookDownload  = errors.New("duplicate book download")
 )
@@ -599,6 +600,172 @@ func (m BookModel) GetAllBooksForCategory(categoryID int64, filters Filters) ([]
 		filters.sortColumn(), filters.sortDirection(),
 	)
 	args := []interface{}{categoryID, filters.limit(), filters.offset()}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	rows, err := m.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, Metadata{}, err
+	}
+	defer rows.Close()
+	totalRecords := 0
+	books := []*Book{}
+	for rows.Next() {
+		var book Book
+		err := rows.Scan(
+			&totalRecords,
+			&book.ID,
+			&book.UserID,
+			&book.CreatedAt,
+			&book.Title,
+			&book.Description,
+			pq.Array(&book.Author),
+			&book.Category,
+			&book.Publisher,
+			&book.Language,
+			&book.Series,
+			&book.Volume,
+			&book.Edition,
+			&book.Year,
+			&book.PageCount,
+			&book.Isbn10,
+			&book.Isbn13,
+			&book.CoverPath,
+			&book.S3FileKey,
+			&book.Filename,
+			&book.Extension,
+			&book.Size,
+			&book.Popularity,
+			&book.Version,
+		)
+		if err != nil {
+			return nil, Metadata{}, err
+		}
+		books = append(books, &book)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, Metadata{}, err
+	}
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+	return books, metadata, nil
+}
+
+func (m BookModel) AddToBooklist(booklistID, bookID int64) error {
+	query := `
+		INSERT INTO booklists_books (booklist_id, book_id)
+		VALUES ($1, $2)`
+	args := []interface{}{booklistID, bookID}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	_, err := m.DB.ExecContext(ctx, query, args...)
+	if err != nil {
+		switch {
+		case err.Error() == `pq: duplicate key value violates unique constraint "booklists_books_pkey"`:
+			return ErrDuplicateBook
+		default:
+			return err
+		}
+	}
+	return nil
+}
+
+func (m BookModel) RemoveFromBooklist(booklistID, bookID int64) error {
+	if booklistID < 1 || bookID < 1 {
+		return ErrRecordNotFound
+	}
+	query := `
+		DELETE FROM booklists_books
+		WHERE booklist_id = $1 AND book_id = $2`
+	args := []interface{}{booklistID, bookID}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	result, err := m.DB.ExecContext(ctx, query, args...)
+	if err != nil {
+		return err
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return ErrRecordNotFound
+	}
+	return nil
+}
+
+// func (m BookModel) GetAllForBooklist(booklistID int64, filters Filters) ([]*Booklist, []*Book, Metadata, error) {
+// 	query := fmt.Sprintf(`
+// 		SELECT count (*) OVER(), books.id, books.user_id, books.created_at, books.title, books.description, books.author, books.category, books.publisher, books.language, books.series, books.volume, books.edition, books.year, books.page_count, books.isbn_10, books.isbn_13, books.cover_path, books.s3_file_key, books.fname, books.extension, books.size, books.popularity, books.version
+// 		FROM books
+// 		INNER JOIN booklists_books ON booklists_books.book_id = books.id
+// 		INNER JOIN booklists ON booklists_books.booklist_id = booklists.id
+// 		WHERE booklists.id = $1
+// 		ORDER BY %s %s, datetime DESC
+// 		LIMIT $2 OFFSET $3`,
+// 		filters.sortColumn(), filters.sortDirection(),
+// 	)
+// 	args := []interface{}{booklistID, filters.limit(), filters.offset()}
+// 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+// 	defer cancel()
+// 	rows, err := m.DB.QueryContext(ctx, query, args...)
+// 	if err != nil {
+// 		return nil, nil, Metadata{}, err
+// 	}
+// 	defer rows.Close()
+// 	totalRecords := 0
+// 	booklists := []*
+// 	books := []*Book{}
+// 	for rows.Next() {
+// 		var book Book
+// 		err := rows.Scan(
+// 			&totalRecords,
+// 			&book.ID,
+// 			&book.UserID,
+// 			&book.CreatedAt,
+// 			&book.Title,
+// 			&book.Description,
+// 			pq.Array(&book.Author),
+// 			&book.Category,
+// 			&book.Publisher,
+// 			&book.Language,
+// 			&book.Series,
+// 			&book.Volume,
+// 			&book.Edition,
+// 			&book.Year,
+// 			&book.PageCount,
+// 			&book.Isbn10,
+// 			&book.Isbn13,
+// 			&book.CoverPath,
+// 			&book.S3FileKey,
+// 			&book.Filename,
+// 			&book.Extension,
+// 			&book.Size,
+// 			&book.Popularity,
+// 			&book.Version,
+// 		)
+// 		if err != nil {
+// 			return nil, nil, Metadata{}, err
+// 		}
+// 		books = append(books, &book)
+// 	}
+// 	if err = rows.Err(); err != nil {
+// 		return nil, nil, Metadata{}, err
+// 	}
+// 	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+// 	return books, metadata, nil
+// }
+
+func (m BookModel) GetAllForBooklist(booklistID int64, filters Filters) ([]*Book, Metadata, error) {
+	query := fmt.Sprintf(`
+		SELECT count (*) OVER(), books.id, books.user_id, books.created_at, books.title, books.description, books.author, books.category, books.publisher, books.language, books.series, books.volume, books.edition, books.year, books.page_count, books.isbn_10, books.isbn_13, books.cover_path, books.s3_file_key, books.fname, books.extension, books.size, books.popularity, books.version
+		FROM books
+		INNER JOIN booklists_books ON booklists_books.book_id = books.id
+		INNER JOIN booklists ON booklists_books.booklist_id = booklists.id
+		WHERE booklists.id = $1
+		ORDER BY %s %s, datetime DESC
+		LIMIT $2 OFFSET $3`,
+		filters.sortColumn(), filters.sortDirection(),
+	)
+	args := []interface{}{booklistID, filters.limit(), filters.offset()}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	rows, err := m.DB.QueryContext(ctx, query, args...)
