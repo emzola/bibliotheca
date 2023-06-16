@@ -15,10 +15,10 @@ var ErrDuplicateBooklistFavourite = errors.New("duplicate booklist favourite")
 // The Booklist struct contains the data fields for a booklist.
 type Booklist struct {
 	ID          int64     `json:"id"`
-	UserID      int64     `json:"user_id"`
-	Username    string    `json:"user_name"`
+	UserID      int64     `json:"creator_id"`
+	CreatorName string    `json:"creator_name"`
 	Name        string    `json:"name"`
-	Description string    `json:"description"`
+	Description string    `json:"description,omitempty"`
 	Private     bool      `json:"private"`
 	Content     Books     `json:"content,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
@@ -219,7 +219,7 @@ func (m BooklistModel) GetAllFavouritesForUser(userID int64, filters Filters) ([
 	return booklists, metadata, nil
 }
 
-func (m BooklistModel) GetAllBooklistsForUser(userID int64, filters Filters) ([]*Booklist, Metadata, error) {
+func (m BooklistModel) GetAllForUser(userID int64, filters Filters) ([]*Booklist, Metadata, error) {
 	query := fmt.Sprintf(`
 		SELECT count(*) OVER(), id, user_id, name, description, private, created_at, updated_at, version
 		FROM booklists

@@ -83,7 +83,9 @@ func (m CategoryModel) GetAll() ([]*Category, error) {
 func (m CategoryModel) AddForBook(bookID int64, category string) error {
 	query := `
 		INSERT INTO books_categories
-		SELECT $1, categories.id FROM categories WHERE categories.name = $2`
+		SELECT $1, categories.id 
+		FROM categories 
+		WHERE categories.name = $2`
 	args := []interface{}{bookID, category}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()

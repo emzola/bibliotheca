@@ -23,7 +23,7 @@ func (app *application) createBooklistHandler(w http.ResponseWriter, r *http.Req
 	user := app.contextGetUser(r)
 	booklist := &data.Booklist{}
 	booklist.UserID = user.ID
-	booklist.Username = user.Name
+	booklist.CreatorName = user.Name
 	booklist.Name = input.Name
 	booklist.Description = input.Description
 	booklist.Private = input.Private
@@ -83,7 +83,7 @@ func (app *application) showBooklistHandler(w http.ResponseWriter, r *http.Reque
 			return
 		}
 	}
-	booklist.Username = app.contextGetUser(r).Name
+	booklist.CreatorName = app.contextGetUser(r).Name
 	err = app.encodeJSON(w, http.StatusOK, envelope{"booklist": booklist}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
@@ -148,7 +148,7 @@ func (app *application) updateBooklistHandler(w http.ResponseWriter, r *http.Req
 		}
 		return
 	}
-	booklist.Username = app.contextGetUser(r).Name
+	booklist.CreatorName = app.contextGetUser(r).Name
 	err = app.encodeJSON(w, http.StatusOK, envelope{"booklist": booklist}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
@@ -243,6 +243,13 @@ func (app *application) listFavouriteBooklistsHandler(w http.ResponseWriter, r *
 		app.serverErrorResponse(w, r, err)
 		return
 	}
+	for _, booklist := range booklists {
+		booklist.Content.Books, booklist.Content.Metadata, err = app.models.Books.GetAllForBooklist(booklist.ID, input.Filters)
+		if err != nil {
+			app.serverErrorResponse(w, r, err)
+			return
+		}
+	}
 	err = app.encodeJSON(w, http.StatusOK, envelope{"booklists": booklists, "metadata": metadata}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
@@ -264,10 +271,17 @@ func (app *application) listUserBooklistsHandler(w http.ResponseWriter, r *http.
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
-	booklists, metadata, err := app.models.Booklists.GetAllBooklistsForUser(user.ID, input.Filters)
+	booklists, metadata, err := app.models.Booklists.GetAllForUser(user.ID, input.Filters)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
+	}
+	for _, booklist := range booklists {
+		booklist.Content.Books, booklist.Content.Metadata, err = app.models.Books.GetAllForBooklist(booklist.ID, input.Filters)
+		if err != nil {
+			app.serverErrorResponse(w, r, err)
+			return
+		}
 	}
 	err = app.encodeJSON(w, http.StatusOK, envelope{"booklists": booklists, "metadata": metadata}, nil)
 	if err != nil {

@@ -61,10 +61,10 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPut, "/v1/users/profile", app.requireActivatedUser(app.updateUserPasswordHandler))
 	router.HandlerFunc(http.MethodDelete, "/v1/users/profile", app.requireActivatedUser(app.deleteUserHandler))
 
-	router.HandlerFunc(http.MethodGet, "/v1/users/favourite-books", app.requireActivatedUser(app.listFavouriteBooksHandler))
-	router.HandlerFunc(http.MethodGet, "/v1/users/favourite-booklists", app.requireActivatedUser(app.listFavouriteBooklistsHandler))
 	router.HandlerFunc(http.MethodGet, "/v1/users/books", app.requireActivatedUser(app.listUsersBooksHandler))
+	router.HandlerFunc(http.MethodGet, "/v1/users/books/favourite", app.requireActivatedUser(app.listFavouriteBooksHandler))
 	router.HandlerFunc(http.MethodGet, "/v1/users/booklists", app.requireActivatedUser(app.listUserBooklistsHandler))
+	router.HandlerFunc(http.MethodGet, "/v1/users/booklists/favourite", app.requireActivatedUser(app.listFavouriteBooklistsHandler))
 	router.HandlerFunc(http.MethodGet, "/v1/users/downloads", app.requireActivatedUser(app.listUserDownloadsHandler))
 	router.HandlerFunc(http.MethodGet, "/v1/users/requests", app.requireActivatedUser(app.listUserRequestsHandler))
 
