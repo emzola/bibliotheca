@@ -40,7 +40,7 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPatch, "/v1/booklists/:booklistId", app.requireBooklistOwnerPermission(app.updateBooklistHandler))
 	router.HandlerFunc(http.MethodDelete, "/v1/booklists/:booklistId", app.requireBooklistOwnerPermission(app.deleteBooklistHandler))
 	router.HandlerFunc(http.MethodPost, "/v1/booklists/:booklistId/books/:bookId", app.requireBooklistOwnerPermission(app.addToBooklistHandler))
-	// router.HandlerFunc(http.MethodGet, "/v1/booklists/:booklistId/books", app.requireActivatedUser(app.findBooksForBooklistHandler))
+	router.HandlerFunc(http.MethodGet, "/v1/booklists/:booklistId/books", app.requireActivatedUser(app.findBooksForBooklistHandler))
 	router.HandlerFunc(http.MethodDelete, "/v1/booklists/:booklistId/books/:bookId", app.requireBooklistOwnerPermission(app.deleteFromBooklistHandler))
 	router.HandlerFunc(http.MethodPost, "/v1/booklists/:booklistId/favourite", app.requireActivatedUser(app.addFavouriteBooklistHandler))
 	router.HandlerFunc(http.MethodDelete, "/v1/booklists/:booklistId/favourite", app.requireActivatedUser(app.removeFavouriteBooklistHandler))

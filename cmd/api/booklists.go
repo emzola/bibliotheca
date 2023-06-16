@@ -124,9 +124,32 @@ func (app *application) listBooklistsHandler(w http.ResponseWriter, r *http.Requ
 	}
 }
 
-// func (app *application) findBooksForBooklistHandler(w http.ResponseWriter, r *http.Request) {
-
-// }
+func (app *application) findBooksForBooklistHandler(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Search  string
+		Filters data.Filters
+	}
+	v := validator.New()
+	qs := r.URL.Query()
+	input.Search = app.readString(qs, "search", "")
+	input.Filters.Page = app.readInt(qs, "page", 1, v)
+	input.Filters.PageSize = app.readInt(qs, "page_size", 10, v)
+	input.Filters.Sort = app.readString(qs, "sort", "id")
+	input.Filters.SortSafeList = []string{"id", "-id"}
+	if data.ValidateFilters(v, input.Filters); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+	books, metadata, err := app.models.Books.FindBooksInBooklist(input.Search, input.Filters)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	err = app.encodeJSON(w, http.StatusOK, envelope{"books": books, "metadata": metadata}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
 
 func (app *application) updateBooklistHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDParam(r, "booklistId")

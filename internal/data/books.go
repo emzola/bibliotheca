@@ -243,7 +243,7 @@ func (m BookModel) GetAll(title string, author []string, isbn10, isbn13, publish
 			&book.CreatedAt,
 			&book.Title,
 			&book.Description,
-			pq.Array(book.Author),
+			pq.Array(&book.Author),
 			&book.Category,
 			&book.Publisher,
 			&book.Language,
@@ -704,6 +704,76 @@ func (m BookModel) GetAllForBooklist(booklistID int64, filters Filters) ([]*Book
 		filters.sortColumn(), filters.sortDirection(),
 	)
 	args := []interface{}{booklistID, filters.limit(), filters.offset()}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	rows, err := m.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, Metadata{}, err
+	}
+	defer rows.Close()
+	totalRecords := 0
+	books := []*Book{}
+	for rows.Next() {
+		var book Book
+		err := rows.Scan(
+			&totalRecords,
+			&book.ID,
+			&book.UserID,
+			&book.CreatedAt,
+			&book.Title,
+			&book.Description,
+			pq.Array(&book.Author),
+			&book.Category,
+			&book.Publisher,
+			&book.Language,
+			&book.Series,
+			&book.Volume,
+			&book.Edition,
+			&book.Year,
+			&book.PageCount,
+			&book.Isbn10,
+			&book.Isbn13,
+			&book.CoverPath,
+			&book.S3FileKey,
+			&book.Filename,
+			&book.Extension,
+			&book.Size,
+			&book.Popularity,
+			&book.Version,
+		)
+		if err != nil {
+			return nil, Metadata{}, err
+		}
+		books = append(books, &book)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, Metadata{}, err
+	}
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+	return books, metadata, nil
+}
+
+func (m BookModel) FindBooksInBooklist(search string, filters Filters) ([]*Book, Metadata, error) {
+	query := fmt.Sprintf(`
+		SELECT count(*) OVER(), id, user_id, created_at, title, description, author, category, publisher, language, series, volume, edition, year, page_count, isbn_10, isbn_13, cover_path, s3_file_key, fname, extension, size, popularity, version
+		FROM books  
+		WHERE (
+			to_tsvector('simple', title) || 
+			to_tsvector(array_to_string(author,' '::text)) ||
+			to_tsvector('simple', isbn_10) || 
+			to_tsvector('simple', isbn_13) || 
+			to_tsvector('simple', publisher) 
+			@@ plainto_tsquery('simple', $1) OR $1 = ''
+		) 
+		ORDER BY %s %s, id ASC
+		LIMIT $2 OFFSET $3`,
+		filters.sortColumn(), filters.sortDirection(),
+	)
+	args := []interface{}{
+		search,
+		filters.limit(),
+		filters.offset(),
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	rows, err := m.DB.QueryContext(ctx, query, args...)
