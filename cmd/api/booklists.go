@@ -410,3 +410,25 @@ func (app *application) deleteFromBooklistHandler(w http.ResponseWriter, r *http
 		app.serverErrorResponse(w, r, err)
 	}
 }
+
+func (app *application) showBookInBooklistHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readIDParam(r, "bookId")
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+	book, err := app.models.Books.Get(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	err = app.encodeJSON(w, http.StatusOK, envelope{"book": book}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
