@@ -1,0 +1,2 @@
+CREATE INDEX IF NOT EXISTS booklists_name_idx ON booklists USING GIN (to_tsvector('simple', name));
+CREATE INDEX IF NOT EXISTS booklists_desc_idx ON booklists USING GIN (to_tsvector('simple', description));
