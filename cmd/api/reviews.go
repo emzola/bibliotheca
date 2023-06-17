@@ -47,6 +47,7 @@ func (app *application) createReviewHandler(w http.ResponseWriter, r *http.Reque
 	review := &data.Review{}
 	review.BookID = book.ID
 	review.UserID = user.ID
+	review.UserName = user.Name
 	review.Rating = input.Rating
 	review.Comment = input.Comment
 	v := validator.New()

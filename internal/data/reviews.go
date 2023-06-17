@@ -28,6 +28,7 @@ type Review struct {
 	ID        int64     `json:"id"`
 	BookID    int64     `json:"book_id"`
 	UserID    int64     `json:"user_id"`
+	UserName  string    `json:"username"`
 	CreatedAt time.Time `json:"created_at"`
 	Rating    int8      `json:"rating"`
 	Comment   string    `json:"comment"`
@@ -60,9 +61,10 @@ func (m ReviewModel) Get(id int64) (*Review, error) {
 		return nil, ErrRecordNotFound
 	}
 	query := `
-		SELECT id, book_id, user_id, created_at, rating, comment, version
+		SELECT reviews.id, reviews.book_id, reviews.user_id, users.name, reviews.created_at, reviews.rating, reviews.comment, reviews.version
 		FROM reviews
-		WHERE id = $1`
+		INNER JOIN users ON reviews.user_id = users.id
+		WHERE reviews.id = $1`
 	var review Review
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -70,6 +72,7 @@ func (m ReviewModel) Get(id int64) (*Review, error) {
 		&review.ID,
 		&review.BookID,
 		&review.UserID,
+		&review.UserName,
 		&review.CreatedAt,
 		&review.Rating,
 		&review.Comment,
@@ -132,8 +135,9 @@ func (m ReviewModel) Delete(id int64) error {
 
 func (m ReviewModel) GetAll(filters Filters) (Rating, []*Review, Metadata, error) {
 	query := fmt.Sprintf(`
-		SELECT count(*) OVER(), id, book_id, user_id, created_at, rating, comment, version
+		SELECT count(*) OVER(), reviews.id, reviews.book_id, reviews.user_id, users.name, reviews.created_at, reviews.rating, reviews.comment, reviews.version
 		FROM reviews  
+		INNER JOIN users ON reviews.user_id = users.id
 		ORDER BY %s %s, id ASC
 		LIMIT $1 OFFSET $2`,
 		filters.sortColumn(), filters.sortDirection())
@@ -156,6 +160,7 @@ func (m ReviewModel) GetAll(filters Filters) (Rating, []*Review, Metadata, error
 			&review.ID,
 			&review.BookID,
 			&review.UserID,
+			&review.UserName,
 			&review.CreatedAt,
 			&review.Rating,
 			&review.Comment,
