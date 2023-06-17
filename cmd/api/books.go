@@ -91,11 +91,7 @@ func (app *application) showBookHandler(w http.ResponseWriter, r *http.Request) 
 
 func (app *application) listBooksHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		Title     string
-		Author    []string
-		Isbn10    string
-		Isbn13    string
-		Publisher string
+		Search    string
 		FromYear  int
 		ToYear    int
 		Language  []string
@@ -104,11 +100,7 @@ func (app *application) listBooksHandler(w http.ResponseWriter, r *http.Request)
 	}
 	v := validator.New()
 	qs := r.URL.Query()
-	input.Title = app.readString(qs, "title", "")
-	input.Author = app.readCSV(qs, "author", []string{})
-	input.Isbn10 = app.readString(qs, "isbn_10", "")
-	input.Isbn13 = app.readString(qs, "isbn_13", "")
-	input.Publisher = app.readString(qs, "publisher", "")
+	input.Search = app.readString(qs, "search", "")
 	input.FromYear = app.readInt(qs, "from_year", 0, v)
 	input.ToYear = app.readInt(qs, "to_year", 0, v)
 	input.Language = app.readCSV(qs, "language", []string{})
@@ -121,7 +113,7 @@ func (app *application) listBooksHandler(w http.ResponseWriter, r *http.Request)
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
-	books, metadata, err := app.models.Books.GetAll(input.Title, input.Author, input.Isbn10, input.Isbn13, input.Publisher, input.FromYear, input.ToYear, input.Language, input.Extension, input.Filters)
+	books, metadata, err := app.models.Books.GetAll(input.Search, input.FromYear, input.ToYear, input.Language, input.Extension, input.Filters)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
