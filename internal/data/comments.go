@@ -15,6 +15,7 @@ type Comment struct {
 	ParentID   int64     `json:"parent_id"`
 	BooklistID int64     `json:"booklist_id"`
 	UserID     int64     `json:"user_id"`
+	UserName   string    `json:"username"`
 	CreatedAt  time.Time `json:"created_at"`
 	Content    string    `json:"content"`
 	Version    int32     `json:"-"`
@@ -45,9 +46,10 @@ func (m CommentModel) Get(id int64) (*Comment, error) {
 		return nil, ErrRecordNotFound
 	}
 	query := `
-		SELECT id, parent_id, booklist_id, user_id, created_at, content, version
+		SELECT comments.id, comments.parent_id, comments.booklist_id, comments.user_id, users.name, comments.created_at, comments.content, comments.version
 		FROM comments
-		WHERE id = $1`
+		INNER JOIN users on comments.user_id = users.id
+		WHERE comments.id = $1`
 	var comment Comment
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -56,6 +58,7 @@ func (m CommentModel) Get(id int64) (*Comment, error) {
 		&comment.ParentID,
 		&comment.BooklistID,
 		&comment.UserID,
+		&comment.UserName,
 		&comment.CreatedAt,
 		&comment.Content,
 		&comment.Version,
@@ -117,10 +120,11 @@ func (m CommentModel) Delete(id int64) error {
 
 func (m CommentModel) GetAll(id int64) ([]*Comment, error) {
 	query := `
-	SELECT id, COALESCE(parent_id, 0), booklist_id, user_id, created_at, content, version
+	SELECT comments.id, COALESCE(comments.parent_id, 0), comments.booklist_id, comments.user_id, users.name, comments.created_at, comments.content, comments.version
 	FROM comments 
-	WHERE booklist_id = $1
-	`
+	INNER JOIN users on comments.user_id = users.id
+	WHERE comments.booklist_id = $1
+	ORDER BY id DESC`
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	rows, err := m.DB.QueryContext(ctx, query, id)
@@ -136,6 +140,7 @@ func (m CommentModel) GetAll(id int64) ([]*Comment, error) {
 			&comment.ParentID,
 			&comment.BooklistID,
 			&comment.UserID,
+			&comment.UserName,
 			&comment.CreatedAt,
 			&comment.Content,
 			&comment.Version,

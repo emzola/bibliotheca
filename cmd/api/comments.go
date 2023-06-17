@@ -27,6 +27,7 @@ func (app *application) createCommentHandler(w http.ResponseWriter, r *http.Requ
 	comment := &data.Comment{}
 	comment.BooklistID = booklistId
 	comment.UserID = user.ID
+	comment.UserName = user.Name
 	comment.Content = input.Content
 	v := validator.New()
 	if data.ValidateComment(v, comment); !v.Valid() {
