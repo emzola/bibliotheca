@@ -59,15 +59,17 @@ func (m BooklistModel) Get(id int64) (*Booklist, error) {
 		return nil, ErrRecordNotFound
 	}
 	query := `
-		SELECT id, user_id, name, description, private, created_at, updated_at, version
+		SELECT booklists.id, booklists.user_id, users.name, booklists.name, booklists.description, booklists.private, booklists.created_at, booklists.updated_at, booklists.version
 		FROM booklists
-		WHERE id = $1`
+		INNER JOIN users ON booklists.user_id = users.id
+		WHERE booklists.id = $1`
 	var booklist Booklist
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	err := m.DB.QueryRowContext(ctx, query, id).Scan(
 		&booklist.ID,
 		&booklist.UserID,
+		&booklist.CreatorName,
 		&booklist.Name,
 		&booklist.Description,
 		&booklist.Private,
@@ -132,10 +134,11 @@ func (m BooklistModel) Delete(id int64) error {
 
 func (m BooklistModel) GetAll(item string, filters Filters) ([]*Booklist, Metadata, error) {
 	query := fmt.Sprintf(`
-		SELECT count(*) OVER(), id, user_id, name, description, private, created_at, updated_at, version
+		SELECT count(*) OVER(), booklists.id, booklists.user_id, users.name, booklists.name, booklists.description, booklists.private, booklists.created_at, booklists.updated_at, booklists.version
 		FROM booklists  
+		INNER JOIN users on booklists.user_id = users.id
 		WHERE (
-			to_tsvector('simple', name) || to_tsvector('simple', description)
+			to_tsvector('simple', booklists.name) || to_tsvector('simple', booklists.description)
 			@@ plainto_tsquery('simple', $1) OR $1 = ''
 		)
 		ORDER BY %s %s, id ASC
@@ -162,6 +165,7 @@ func (m BooklistModel) GetAll(item string, filters Filters) ([]*Booklist, Metada
 			&totalRecords,
 			&booklist.ID,
 			&booklist.UserID,
+			&booklist.CreatorName,
 			&booklist.Name,
 			&booklist.Description,
 			&booklist.Private,

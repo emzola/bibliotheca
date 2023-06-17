@@ -79,7 +79,6 @@ func (app *application) showBooklistHandler(w http.ResponseWriter, r *http.Reque
 		app.serverErrorResponse(w, r, err)
 		return
 	}
-	// booklist.CreatorName = app.contextGetUser(r).Name
 	err = app.encodeJSON(w, http.StatusOK, envelope{"booklist": booklist}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
@@ -197,7 +196,6 @@ func (app *application) updateBooklistHandler(w http.ResponseWriter, r *http.Req
 		}
 		return
 	}
-	// booklist.CreatorName = app.contextGetUser(r).Name
 	err = app.encodeJSON(w, http.StatusOK, envelope{"booklist": booklist}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
