@@ -96,22 +96,23 @@ func (m RequestModel) Get(id int64) (*Request, error) {
 	return &request, nil
 }
 
-func (m RequestModel) GetAll(title, isbn, publisher, status string, filters Filters) ([]*Request, Metadata, error) {
+func (m RequestModel) GetAll(search, status string, filters Filters) ([]*Request, Metadata, error) {
 	query := fmt.Sprintf(`
 		SELECT count(*) OVER(), id, user_id, title, publisher, isbn, year, expiry, status, waitlist, created_at, version
 		FROM requests
-		WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', $1) OR $1 = '')
-		AND (LOWER(isbn) = LOWER($2) OR $2 = '')
-		AND (to_tsvector('simple', publisher) @@ plainto_tsquery('simple', $3) OR $3 = '')
-		AND (LOWER(status) = LOWER($4) OR $4 = '') 
+		WHERE (
+			to_tsvector('simple', title) || 
+			to_tsvector('simple', isbn) || 
+			to_tsvector('simple', publisher) 
+			@@ plainto_tsquery('simple', $1) OR $1 = ''
+		) 
+		AND (LOWER(status) = LOWER($2) OR $2 = '') 
 		ORDER BY %s %s, id ASC
-		LIMIT $5 OFFSET $6`,
+		LIMIT $3 OFFSET $4`,
 		filters.sortColumn(), filters.sortDirection(),
 	)
 	args := []interface{}{
-		title,
-		isbn,
-		publisher,
+		search,
 		status,
 		filters.limit(),
 		filters.offset(),

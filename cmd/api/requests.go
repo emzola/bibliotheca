@@ -110,31 +110,23 @@ func (app *application) showRequestHandler(w http.ResponseWriter, r *http.Reques
 
 func (app *application) listRequestsHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		Title     string
-		Author    []string
-		Isbn      string
-		Publisher string
-		Language  []string
-		Status    string
-		Filters   data.Filters
+		Search  string
+		Status  string
+		Filters data.Filters
 	}
 	v := validator.New()
 	qs := r.URL.Query()
-	input.Title = app.readString(qs, "title", "")
-	input.Author = app.readCSV(qs, "author", []string{})
-	input.Isbn = app.readString(qs, "isbn", "")
-	input.Publisher = app.readString(qs, "publisher", "")
-	input.Language = app.readCSV(qs, "language", []string{})
+	input.Search = app.readString(qs, "search", "")
 	input.Filters.Page = app.readInt(qs, "page", 1, v)
 	input.Filters.PageSize = app.readInt(qs, "page_size", 10, v)
 	input.Status = app.readString(qs, "status", "active")
-	input.Filters.Sort = app.readString(qs, "sort", "-id")
+	input.Filters.Sort = app.readString(qs, "sort", "id")
 	input.Filters.SortSafeList = []string{"id", "-id"}
 	if data.ValidateFilters(v, input.Filters); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
-	requests, metadata, err := app.models.Requests.GetAll(input.Title, input.Isbn, input.Publisher, input.Status, input.Filters)
+	requests, metadata, err := app.models.Requests.GetAll(input.Search, input.Status, input.Filters)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
