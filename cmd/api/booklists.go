@@ -46,6 +46,19 @@ func (app *application) createBooklistHandler(w http.ResponseWriter, r *http.Req
 }
 
 func (app *application) showBooklistHandler(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Filters data.Filters
+	}
+	v := validator.New()
+	qs := r.URL.Query()
+	input.Filters.Page = app.readInt(qs, "page", 1, v)
+	input.Filters.PageSize = app.readInt(qs, "page_size", 10, v)
+	input.Filters.Sort = app.readString(qs, "sort", "-datetime")
+	input.Filters.SortSafeList = []string{"datetime", "-datetime"}
+	if data.ValidateFilters(v, input.Filters); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
 	booklistId, err := app.readIDParam(r, "booklistId")
 	if err != nil || booklistId < 1 {
 		app.notFoundResponse(w, r)
@@ -61,29 +74,12 @@ func (app *application) showBooklistHandler(w http.ResponseWriter, r *http.Reque
 		}
 		return
 	}
-	var input struct {
-		Include string
-		Filters data.Filters
-	}
-	v := validator.New()
-	qs := r.URL.Query()
-	input.Include = app.readString(qs, "include", "")
-	input.Filters.Page = app.readInt(qs, "page", 1, v)
-	input.Filters.PageSize = app.readInt(qs, "page_size", 10, v)
-	input.Filters.Sort = app.readString(qs, "sort", "-datetime")
-	input.Filters.SortSafeList = []string{"datetime", "-datetime"}
-	if data.ValidateFilters(v, input.Filters); !v.Valid() {
-		app.failedValidationResponse(w, r, v.Errors)
+	booklist.Content.Books, booklist.Content.Metadata, err = app.models.Books.GetAllForBooklist(booklistId, input.Filters)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
 		return
 	}
-	if input.Include == "books" {
-		booklist.Content.Books, booklist.Content.Metadata, err = app.models.Books.GetAllForBooklist(booklistId, input.Filters)
-		if err != nil {
-			app.serverErrorResponse(w, r, err)
-			return
-		}
-	}
-	booklist.CreatorName = app.contextGetUser(r).Name
+	// booklist.CreatorName = app.contextGetUser(r).Name
 	err = app.encodeJSON(w, http.StatusOK, envelope{"booklist": booklist}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
@@ -201,7 +197,7 @@ func (app *application) updateBooklistHandler(w http.ResponseWriter, r *http.Req
 		}
 		return
 	}
-	booklist.CreatorName = app.contextGetUser(r).Name
+	// booklist.CreatorName = app.contextGetUser(r).Name
 	err = app.encodeJSON(w, http.StatusOK, envelope{"booklist": booklist}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
