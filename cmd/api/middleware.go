@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -9,6 +10,19 @@ import (
 	"github.com/emzola/bibliotheca/internal/validator"
 	"github.com/jellydator/ttlcache/v3"
 )
+
+// recoverPanic middleware recovers from panics and will always be run in the event of a panic.
+func (app *application) recoverPanic(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if err := recover(); err != nil {
+				w.Header().Set("Connection", "close")
+				app.serverErrorResponse(w, r, fmt.Errorf("%s", err))
+			}
+		}()
+		next.ServeHTTP(w, r)
+	})
+}
 
 // authenticate middleware authenticates users. It returns an authenticated or anonymous user.
 func (app *application) authenticate(next http.Handler) http.Handler {
