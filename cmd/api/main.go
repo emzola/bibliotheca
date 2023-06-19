@@ -6,6 +6,7 @@ import (
 	"flag"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -46,6 +47,9 @@ type config struct {
 		burst   int
 		enabled bool
 	}
+	cors struct {
+		trustedOrigins []string
+	}
 }
 
 // The application struct holds the dependencies for our HTTP handlers,
@@ -71,11 +75,6 @@ func main() {
 	flag.IntVar(&cfg.db.maxIdleConns, "db-max-idle-conns", 25, "PostgreSQL max idle connections")
 	flag.StringVar(&cfg.db.maxIdleTime, "db-max-idle-time", "15m", "PostgreSQL max connection idle time")
 
-	// Read the rate limter settings into the config struct
-	flag.Float64Var(&cfg.limiter.rps, "limiter-rps", 2, "Rate limiter maximum requests per second")
-	flag.IntVar(&cfg.limiter.burst, "limiter-burst", 4, "Rate limiter maximum burst")
-	flag.BoolVar(&cfg.limiter.enabled, "limiter-enabled", true, "Enable rate limiter")
-
 	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
 
 	// Read the SMTP server configuration settings into the config struct
@@ -88,6 +87,17 @@ func main() {
 	flag.StringVar(&cfg.smtp.username, "smtp-username", os.Getenv("SMTPUSERNAME"), "SMTP username")
 	flag.StringVar(&cfg.smtp.password, "smtp-password", os.Getenv("SMTPPASSWORD"), "SMTP password")
 	flag.StringVar(&cfg.smtp.sender, "smtp-sender", "Bibliotheca <no-reply@bibliotheca.com>", "SMTP sender")
+
+	// Read the rate limter settings into the config struct
+	flag.Float64Var(&cfg.limiter.rps, "limiter-rps", 2, "Rate limiter maximum requests per second")
+	flag.IntVar(&cfg.limiter.burst, "limiter-burst", 4, "Rate limiter maximum burst")
+	flag.BoolVar(&cfg.limiter.enabled, "limiter-enabled", true, "Enable rate limiter")
+
+	// Process the -cors-trusted-origins command line flag
+	flag.Func("cors-trusted-origin", "Trusted CORS origin (space separated)", func(s string) error {
+		cfg.cors.trustedOrigins = strings.Fields(s)
+		return nil
+	})
 
 	flag.Parse()
 
