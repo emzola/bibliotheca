@@ -106,3 +106,8 @@ func (app *application) passwordMismatchResponse(w http.ResponseWriter, r *http.
 	message := "passwords do not match"
 	app.errorResponse(w, r, http.StatusUnprocessableEntity, message)
 }
+
+func (app *application) rateLimitExceededResponse(w http.ResponseWriter, r *http.Request) {
+	message := "rate limit exceeded"
+	app.errorResponse(w, r, http.StatusTooManyRequests, message)
+}
