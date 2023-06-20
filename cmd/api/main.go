@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"database/sql"
+	"expvar"
 	"flag"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -118,6 +120,25 @@ func main() {
 	// In-memory caching with a ttl of 30 minutes
 	cache := ttlcache.New(ttlcache.WithTTL[string, int64](30 * time.Minute))
 	go cache.Start()
+
+	// Publish a new "version" variable in the expvar handler containing
+	// the application version number
+	expvar.NewString("version").Set(version)
+
+	// Publish the number of active goroutines
+	expvar.Publish("goroutines", expvar.Func(func() any {
+		return runtime.NumGoroutine()
+	}))
+
+	// Publish the database connection pool statistics
+	expvar.Publish("database", expvar.Func(func() any {
+		return db.Stats()
+	}))
+
+	// Publish the current Unix timestamp
+	expvar.Publish("timestamp", expvar.Func(func() any {
+		return time.Now().Unix()
+	}))
 
 	app := &application{
 		config: cfg,

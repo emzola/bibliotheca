@@ -2,15 +2,18 @@ package main
 
 import (
 	"errors"
+	"expvar"
 	"fmt"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/emzola/bibliotheca/internal/data"
 	"github.com/emzola/bibliotheca/internal/validator"
+	"github.com/felixge/httpsnoop"
 	"github.com/jellydator/ttlcache/v3"
 	"golang.org/x/time/rate"
 )
@@ -339,4 +342,19 @@ func (app *application) requireCommentOwnerPermission(next http.HandlerFunc) htt
 		next.ServeHTTP(w, r)
 	})
 	return app.requireActivatedUser(fn)
+}
+
+// metrics middleware exposes the application's request-level metrics
+func (app *application) metrics(next http.Handler) http.Handler {
+	totalRequestsReceived := expvar.NewInt("total_requests_received")
+	totalResponsesSent := expvar.NewInt("total_responses_sent")
+	totalProcessingTimeMicrosecond := expvar.NewInt("total_processing_time_μs")
+	totalResponsesSentBystatus := expvar.NewMap("total_responses_sent_by_status")
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		totalRequestsReceived.Add(1)
+		metrics := httpsnoop.CaptureMetrics(next, w, r)
+		totalResponsesSent.Add(1)
+		totalProcessingTimeMicrosecond.Add(metrics.Duration.Microseconds())
+		totalResponsesSentBystatus.Add(strconv.Itoa(metrics.Code), 1)
+	})
 }
