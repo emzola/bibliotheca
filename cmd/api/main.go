@@ -52,6 +52,10 @@ type config struct {
 	cors struct {
 		trustedOrigins []string
 	}
+	basicAuth struct {
+		username string
+		password string
+	}
 }
 
 // The application struct holds the dependencies for our HTTP handlers,
@@ -100,6 +104,10 @@ func main() {
 		cfg.cors.trustedOrigins = strings.Fields(s)
 		return nil
 	})
+
+	// Read basic auth credentials for metrics endpoint
+	flag.StringVar(&cfg.basicAuth.username, "basic-auth-username", os.Getenv("BASIC_AUTH_USERNAME"), "Basic auth username")
+	flag.StringVar(&cfg.basicAuth.password, "basic-auth-password", os.Getenv("BASIC_AUTH_PASSWORD"), "Basic auth password")
 
 	flag.Parse()
 

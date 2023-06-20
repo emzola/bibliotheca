@@ -76,7 +76,7 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPost, "/v1/tokens/password-reset", app.createPasswordResetTokenHandler)
 	router.HandlerFunc(http.MethodPost, "/v1/tokens/authentication", app.createAuthenticationTokenHandler)
 
-	router.Handler(http.MethodGet, "/debug/vars", expvar.Handler())
+	router.HandlerFunc(http.MethodGet, "/debug/vars", app.basicAuth(expvar.Handler().ServeHTTP))
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthcheckHandler)
 
 	return app.metrics(app.recoverPanic(app.enableCORS(app.rateLimit(app.authenticate(router)))))
