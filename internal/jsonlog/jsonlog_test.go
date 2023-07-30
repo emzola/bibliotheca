@@ -11,7 +11,7 @@ import (
 func TestJSONLogger(t *testing.T) {
 	var logBuffer bytes.Buffer
 
-	t.Run("ANYLevel", func(t *testing.T) {
+	t.Run("ANY Level", func(t *testing.T) {
 		message := "Any log"
 		// Use LevelFatal as argument in New() function so that when running tests
 		// the log is written to the standard output but not printed out
@@ -24,12 +24,12 @@ func TestJSONLogger(t *testing.T) {
 		l.out = &logBuffer
 		lines := bytes.Split(logBuffer.Bytes(), []byte("\n"))
 		if len(lines) != expected {
-			t.Errorf("Expected %d log lines, got %d instead\n", expected, len(lines))
+			t.Errorf("expected %d log lines; got %d", expected, len(lines))
 		}
 		logBuffer.Reset()
 	})
 
-	t.Run("INFOLevel", func(t *testing.T) {
+	t.Run("INFO Level", func(t *testing.T) {
 		message := "INFO log"
 		properties := map[string]string{
 			"addr": "8080",
@@ -43,7 +43,7 @@ func TestJSONLogger(t *testing.T) {
 		l.out = &logBuffer
 		json.NewDecoder(&logBuffer).Decode(&output)
 		if output != logBuffer.String() {
-			t.Errorf("Expected %s, got %s instead\n", output, &logBuffer)
+			t.Errorf("expected %s; got %s", output, &logBuffer)
 		}
 		logBuffer.Reset()
 	})
@@ -59,12 +59,12 @@ func TestJSONLogger(t *testing.T) {
 		l.out = &logBuffer
 		json.NewDecoder(&logBuffer).Decode(&output)
 		if output != logBuffer.String() {
-			t.Errorf("Expected %s, got %s instead\n", output, &logBuffer)
+			t.Errorf("expected %s; got %s", output, &logBuffer)
 		}
 		logBuffer.Reset()
 	})
 
-	t.Run("FATALLevel", func(t *testing.T) {
+	t.Run("FATAL Level", func(t *testing.T) {
 		message := "FATAL log"
 		err := fmt.Errorf("%s", message)
 		// Use LevelFatal as argument in New() function so that when running tests
@@ -75,7 +75,7 @@ func TestJSONLogger(t *testing.T) {
 		l.out = &logBuffer
 		json.NewDecoder(&logBuffer).Decode(&output)
 		if output != logBuffer.String() {
-			t.Errorf("Expected %s, got %s instead\n", output, &logBuffer)
+			t.Errorf("expected %v; got %v", output, &logBuffer)
 		}
 		logBuffer.Reset()
 	})

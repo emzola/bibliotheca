@@ -10,11 +10,12 @@ import (
 
 var EmailRX = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 
-// Validator type contains a map of validation errors.
+// Validator defines a map of validation errors.
 type Validator struct {
 	Errors map[string]string
 }
 
+// New creates a new instance of Validator.
 func New() *Validator {
 	return &Validator{
 		Errors: make(map[string]string),
