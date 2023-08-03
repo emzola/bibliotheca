@@ -10,6 +10,21 @@ import (
 	"github.com/emzola/bibliotheca/service"
 )
 
+// CreateReview godoc
+// @Summary Create a new book review
+// @Description This endpoint creates a new book request
+// @Tags reviews
+// @Accept  json
+// @Produce json
+// @Param token header string true "Bearer token"
+// @Param bookId path int true "ID of book for review"
+// @Param body body dto.CreateReviewRequestBody true "JSON payload required to create a book review"
+// @Success 201 {object} data.Review
+// @Failure 400
+// @Failure 404
+// @Failure 422
+// @Failure 500
+// @Router /v1/books/{bookId}/reviews [post]
 func (h *Handler) createReviewHandler(w http.ResponseWriter, r *http.Request) {
 	var requestBody dto.CreateReviewRequestBody
 	err := h.decodeJSON(w, r, &requestBody)
@@ -45,6 +60,19 @@ func (h *Handler) createReviewHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ShowReview godoc
+// @Summary Show details of a book review
+// @Description This endpoint shows the details of a specific book review
+// @Tags reviews
+// @Accept  json
+// @Produce json
+// @Param token header string true "Bearer token"
+// @Param bookId path int true "ID of book for review"
+// @Param reviewId path int true "ID of review to show"
+// @Success 200 {object} data.Review
+// @Failure 404
+// @Failure 500
+// @Router /v1/books/{bookId}/reviews/{reviewId} [get]
 func (h *Handler) showReviewHandler(w http.ResponseWriter, r *http.Request) {
 	reviewID, err := h.readIDParam(r, "reviewId")
 	if err != nil || reviewID < 1 {
@@ -67,6 +95,22 @@ func (h *Handler) showReviewHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ShowReview godoc
+// @Summary Show details of a book review
+// @Description This endpoint shows the details of a specific book review
+// @Tags reviews
+// @Accept  json
+// @Produce json
+// @Param token header string true "Bearer token"
+// @Param bookId path int true "ID of book for review"
+// @Param reviewId path int true "ID of review to update"
+// @Success 200 {object} data.Review
+// @Failure 400
+// @Failure 404
+// @Failure 409
+// @Failure 422
+// @Failure 500
+// @Router /v1/books/{bookId}/reviews/{reviewId} [patch]
 func (h *Handler) updateReviewHandler(w http.ResponseWriter, r *http.Request) {
 	var requestBody dto.UpdateReviewRequestBody
 	err := h.decodeJSON(w, r, &requestBody)
@@ -104,6 +148,19 @@ func (h *Handler) updateReviewHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// DeleteReview godoc
+// @Summary Delete a book review
+// @Description This endpoint deletes a book review
+// @Tags reviews
+// @Accept  json
+// @Produce json
+// @Param token header string true "Bearer token"
+// @Param bookId path int true "ID of book for review"
+// @Param reviewId path int true "ID of review to delete"
+// @Success 200
+// @Failure 404
+// @Failure 500
+// @Router /v1/books/{bookId}/reviews/{reviewId} [delete]
 func (h *Handler) deleteReviewHandler(w http.ResponseWriter, r *http.Request) {
 	reviewID, err := h.readIDParam(r, "reviewId")
 	if err != nil {
@@ -131,6 +188,21 @@ func (h *Handler) deleteReviewHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ListReviews godoc
+// @Summary List all reviews
+// @Description This endpoint lists all reviews
+// @Tags reviews
+// @Accept  json
+// @Produce json
+// @Param token header string true "Bearer token"
+// @Param bookId path int true "ID of book for review"
+// @Param page query int false "Query string param for pagination (min 1)"
+// @Param page_size query int false "Query string param for pagination (max 100)"
+// @Param sort query string false "Sort by ascending or descending order. Asc: id, vote. Desc: -id, -vote"
+// @Success 200 {array} data.Review
+// @Failure 422
+// @Failure 500
+// @Router /v1/books/{bookId}/reviews [get]
 func (h *Handler) listReviewsHandler(w http.ResponseWriter, r *http.Request) {
 	var qsInput dto.QsListReviews
 	v := validator.New()

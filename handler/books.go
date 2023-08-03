@@ -10,6 +10,20 @@ import (
 	"github.com/emzola/bibliotheca/service"
 )
 
+// CreateBook godoc
+// @Summary Upload a new book
+// @Description This endpoint uploads a new book
+// @Tags books
+// @Accept  json
+// @Produce json
+// @Param token header string true "Bearer token"
+// @Param book formData file true "File to upload"
+// @Success 201 {object} data.Book
+// @Failure 400
+// @Failure 413
+// @Failure 415
+// @Failure 500
+// @Router /v1/books [post]
 func (h *Handler) createBookHandler(w http.ResponseWriter, r *http.Request) {
 	// Set 10MB limit for request body size
 	maxBytes := int64(10_485_760)
@@ -37,6 +51,18 @@ func (h *Handler) createBookHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ShowBook godoc
+// @Summary Show details of a book
+// @Description This endpoint shows the details of a specific book
+// @Tags books
+// @Accept  json
+// @Produce json
+// @Param token header string true "Bearer token"
+// @Param bookId path int true "ID of book to show"
+// @Success 200 {object} data.Book
+// @Failure 404
+// @Failure 500
+// @Router /v1/books/{bookId} [get]
 func (h *Handler) showBookHandler(w http.ResponseWriter, r *http.Request) {
 	bookID, err := h.readIDParam(r, "bookId")
 	if err != nil {
@@ -59,6 +85,25 @@ func (h *Handler) showBookHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ListBooks godoc
+// @Summary List all books
+// @Description This endpoint lists all books
+// @Tags books
+// @Accept  json
+// @Produce json
+// @Param token header string true "Bearer token"
+// @Param search query string false "Query string param for search"
+// @Param from_year query string false "Query string param to filter by year"
+// @Param to_year query string false "Query string param to filter by year"
+// @Param language query string false "Query string param to filter by language"
+// @Param extension query string false "Query string param to filter by file extension"
+// @Param page query int false "Query string param for pagination (min 1)"
+// @Param page_size query int false "Query string param for pagination (max 100)"
+// @Param sort query string false "Sort by ascending or descending order. Asc: id, title, year, size, created_at, popularity. Desc: -id, -title, -year, -size, -created_at, -popularity"
+// @Success 200 {array} data.Book
+// @Failure 422
+// @Failure 500
+// @Router /v1/books [get]
 func (h *Handler) listBooksHandler(w http.ResponseWriter, r *http.Request) {
 	var qsInput dto.QsListBooks
 	v := validator.New()
@@ -88,6 +133,21 @@ func (h *Handler) listBooksHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// UpdateBook godoc
+// @Summary Update the details of a book
+// @Description This endpoint updates the details of a specific book
+// @Tags books
+// @Accept  json
+// @Produce json
+// @Param token header string true "Bearer token"
+// @Param book body dto.UpdateBookRequestBody true "JSON Payload required to update a book"
+// @Param bookId path int true "ID of book to update"
+// @Success 200 {object} data.Book
+// @Failure 400
+// @Failure 404
+// @Failure 409
+// @Failure 500
+// @Router /v1/books/{bookId} [patch]
 func (h *Handler) updateBookHandler(w http.ResponseWriter, r *http.Request) {
 	var requestBody dto.UpdateBookRequestBody
 	err := h.decodeJSON(w, r, &requestBody)
@@ -122,6 +182,23 @@ func (h *Handler) updateBookHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// updateBookCover godoc
+// @Summary Upload a book cover
+// @Description This endpoint uploads a book cover
+// @Tags books
+// @Accept  json
+// @Produce json
+// @Param token header string true "Bearer token"
+// @Param bookId path int true "ID of book for cover upload"
+// @Param cover formData file true "Image to upload"
+// @Success 201 {object} data.Book
+// @Failure 400
+// @Failure 404
+// @Failure 409
+// @Failure 413
+// @Failure 415
+// @Failure 500
+// @Router /v1/books/{bookId}/cover [post]
 func (h *Handler) updateBookCoverHandler(w http.ResponseWriter, r *http.Request) {
 	// Set 3MB limit for request body size
 	maxBytes := int64(2_097_152)
@@ -153,6 +230,18 @@ func (h *Handler) updateBookCoverHandler(w http.ResponseWriter, r *http.Request)
 	}
 }
 
+// DeleteBook godoc
+// @Summary Delete a book
+// @Description This endpoint deletes a specific book
+// @Tags books
+// @Accept  json
+// @Produce json
+// @Param token header string true "Bearer token"
+// @Param bookId path int true "ID of book to delete"
+// @Success 200
+// @Failure 404
+// @Failure 500
+// @Router /v1/books/{bookId} [delete]
 func (h *Handler) deleteBookHandler(w http.ResponseWriter, r *http.Request) {
 	bookID, err := h.readIDParam(r, "bookId")
 	if err != nil {
@@ -175,6 +264,20 @@ func (h *Handler) deleteBookHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// DownloadBook godoc
+// @Summary Download a book
+// @Description This endpoint downloads a specific book
+// @Tags books
+// @Accept  json
+// @Produce json
+// @Param token header string true "Bearer token"
+// @Param bookId path int true "ID of book to download"
+// @Success 200
+// @Failure 403
+// @Failure 404
+// @Failure 422
+// @Failure 500
+// @Router /v1/books/{bookId}/download [get]
 func (h *Handler) downloadBookHandler(w http.ResponseWriter, r *http.Request) {
 	bookID, err := h.readIDParam(r, "bookId")
 	if err != nil || bookID < 1 {
@@ -202,6 +305,18 @@ func (h *Handler) downloadBookHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// DeleteBookFromDownloads godoc
+// @Summary Delete a book from downloads
+// @Description This endpoint deletes a specific book from download history
+// @Tags books
+// @Accept  json
+// @Produce json
+// @Param token header string true "Bearer token"
+// @Param bookId path int true "ID of book to delete from download history"
+// @Success 200
+// @Failure 404
+// @Failure 500
+// @Router /v1/books/{bookId}/download [delete]
 func (h *Handler) deleteBookFromDownloadsHandler(w http.ResponseWriter, r *http.Request) {
 	bookID, err := h.readIDParam(r, "bookId")
 	if err != nil {
@@ -225,6 +340,18 @@ func (h *Handler) deleteBookFromDownloadsHandler(w http.ResponseWriter, r *http.
 	}
 }
 
+// FavouriteBook godoc
+// @Summary Mark a book as favourite
+// @Description This endpoint marks a specific book as favourite
+// @Tags books
+// @Accept  json
+// @Produce json
+// @Param token header string true "Bearer token"
+// @Param bookId path int true "ID of book to favourite"
+// @Success 200
+// @Failure 422
+// @Failure 500
+// @Router /v1/books/{bookId}/favourite [post]
 func (h *Handler) favouriteBookHandler(w http.ResponseWriter, r *http.Request) {
 	bookID, err := h.readIDParam(r, "bookId")
 	if err != nil {
@@ -248,6 +375,18 @@ func (h *Handler) favouriteBookHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// DeleteFavouriteBook godoc
+// @Summary Delete a book from favourites
+// @Description This endpoint deletes a specific book from favourites
+// @Tags books
+// @Accept  json
+// @Produce json
+// @Param token header string true "Bearer token"
+// @Param bookId path int true "ID of book to delete from favourites"
+// @Success 200
+// @Failure 404
+// @Failure 500
+// @Router /v1/books/{bookId}/favourite [delete]
 func (h *Handler) deleteFavouriteBookHandler(w http.ResponseWriter, r *http.Request) {
 	bookID, err := h.readIDParam(r, "bookId")
 	if err != nil {

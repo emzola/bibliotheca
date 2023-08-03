@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
 func (h *Handler) Routes() http.Handler {
@@ -56,6 +57,10 @@ func (h *Handler) Routes() http.Handler {
 	router.HandlerFunc(http.MethodPost, "/v1/requests/:requestId/subscribe", h.requireActivatedUser(h.subscribeRequestHandler))
 	router.HandlerFunc(http.MethodDelete, "/v1/requests/:requestId/unsubscribe", h.requireActivatedUser(h.unsubscribeRequestHandler))
 
+	router.HandlerFunc(http.MethodPost, "/v1/users", h.registerUserHandler)
+	router.HandlerFunc(http.MethodPut, "/v1/users/activated", h.activateUserHandler)
+	router.HandlerFunc(http.MethodPut, "/v1/users/password", h.resetUserPasswordHandler)
+
 	router.HandlerFunc(http.MethodGet, "/v1/users/profile", h.requireActivatedUser(h.showUserHandler))
 	router.HandlerFunc(http.MethodPatch, "/v1/users/profile", h.requireActivatedUser(h.updateUserHandler))
 	router.HandlerFunc(http.MethodPut, "/v1/users/profile", h.requireActivatedUser(h.updateUserPasswordHandler))
@@ -68,10 +73,6 @@ func (h *Handler) Routes() http.Handler {
 	router.HandlerFunc(http.MethodGet, "/v1/users/downloads", h.requireActivatedUser(h.listUserDownloadsHandler))
 	router.HandlerFunc(http.MethodGet, "/v1/users/requests", h.requireActivatedUser(h.listUserRequestsHandler))
 
-	router.HandlerFunc(http.MethodPost, "/v1/users", h.registerUserHandler)
-	router.HandlerFunc(http.MethodPut, "/v1/users/activated", h.activateUserHandler)
-	router.HandlerFunc(http.MethodPut, "/v1/users/password", h.resetUserPasswordHandler)
-
 	router.HandlerFunc(http.MethodPost, "/v1/tokens/activation", h.createActivationTokenHandler)
 	router.HandlerFunc(http.MethodPost, "/v1/tokens/authentication", h.createAuthenticationTokenHandler)
 	router.HandlerFunc(http.MethodDelete, "/v1/tokens/authentication", h.requireAuthenticatedUser(h.deleteAuthenticationTokenHandler))
@@ -79,6 +80,10 @@ func (h *Handler) Routes() http.Handler {
 
 	// router.HandlerFunc(http.MethodGet, "/debug/vars", app.basicAuth(expvar.Handler().ServeHTTP))
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", h.healthcheckHandler)
+
+	// Swagger routes
+	router.HandlerFunc(http.MethodGet, "/spec", h.handleSwaggerFile())
+	router.HandlerFunc(http.MethodGet, "/docs/*any", httpSwagger.Handler(httpSwagger.URL("/spec")))
 
 	return h.metrics(h.recoverPanic(h.enableCORS(h.rateLimit(h.authenticate(router)))))
 }

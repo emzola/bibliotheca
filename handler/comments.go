@@ -9,6 +9,21 @@ import (
 	"github.com/emzola/bibliotheca/service"
 )
 
+// CreateComment godoc
+// @Summary Create a new booklist comment
+// @Description This endpoint creates a new booklist comment
+// @Tags comments
+// @Accept  json
+// @Produce json
+// @Param token header string true "Bearer token"
+// @Param booklistId path int true "ID of booklist for comment"
+// @Param body body dto.CreateCommentRequestBody true "JSON payload required to create a booklist comment"
+// @Success 201 {object} data.Comment
+// @Failure 400
+// @Failure 404
+// @Failure 422
+// @Failure 500
+// @Router /v1/booklists/{booklistId}/comments [post]
 func (h *Handler) createCommentHandler(w http.ResponseWriter, r *http.Request) {
 	var requestBody dto.CreateCommentRequestBody
 	err := h.decodeJSON(w, r, &requestBody)
@@ -40,6 +55,21 @@ func (h *Handler) createCommentHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// UpdateComment godoc
+// @Summary Update the details of a booklist comment
+// @Description This endpoint updates the details of a specific booklist comment
+// @Tags comments
+// @Accept  json
+// @Produce json
+// @Param token header string true "Bearer token"
+// @Param comment body dto.UpdateCommentRequestBody true "JSON Payload required to update a booklist comment"
+// @Param commentId path int true "ID of comment to update"
+// @Success 200 {object} data.Comment
+// @Failure 400
+// @Failure 404
+// @Failure 409
+// @Failure 500
+// @Router /v1/booklists/{booklistId}/comments [patch]
 func (h *Handler) updateCommentHandler(w http.ResponseWriter, r *http.Request) {
 	var requestBody dto.UpdateCommentRequestBody
 	err := h.decodeJSON(w, r, &requestBody)
@@ -70,6 +100,18 @@ func (h *Handler) updateCommentHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// DeleteComment godoc
+// @Summary Delete a booklist comment
+// @Description This endpoint deletes a specific booklist comment
+// @Tags comments
+// @Accept  json
+// @Produce json
+// @Param token header string true "Bearer token"
+// @Param commentId path int true "ID of booklist comment to delete"
+// @Success 200
+// @Failure 404
+// @Failure 500
+// @Router /v1/booklists/{booklistId}/comments [delete]
 func (h *Handler) deleteCommentHandler(w http.ResponseWriter, r *http.Request) {
 	commentID, err := h.readIDParam(r, "commentId")
 	if err != nil {
@@ -92,6 +134,17 @@ func (h *Handler) deleteCommentHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ListComments godoc
+// @Summary List all comments
+// @Description This endpoint lists all comments
+// @Tags comments
+// @Accept  json
+// @Produce json
+// @Param token header string true "Bearer token"
+// @Success 200 {array} data.Comment
+// @Failure 404
+// @Failure 500
+// @Router /v1/booklists/{booklistId}/comments [get]
 func (h *Handler) listCommentsHandler(w http.ResponseWriter, r *http.Request) {
 	booklistID, err := h.readIDParam(r, "booklistId")
 	if err != nil {
@@ -109,6 +162,22 @@ func (h *Handler) listCommentsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// CreateCommentReply godoc
+// @Summary Reply a booklist comment
+// @Description This endpoint creates a new comment child
+// @Tags comments
+// @Accept  json
+// @Produce json
+// @Param token header string true "Bearer token"
+// @Param booklistId path int true "ID of booklist for comment"
+// @Param commentId path int true "ID of parent comment"
+// @Param body body dto.CreateCommentReplyRequestBody true "JSON payload required to create a comment child"
+// @Success 201 {object} data.Comment
+// @Failure 400
+// @Failure 404
+// @Failure 422
+// @Failure 500
+// @Router /v1/booklists/{booklistId}/comments/{commentId} [post]
 func (h *Handler) createCommentReplyHandler(w http.ResponseWriter, r *http.Request) {
 	var requestBody dto.CreateCommentReplyRequestBody
 	err := h.decodeJSON(w, r, &requestBody)

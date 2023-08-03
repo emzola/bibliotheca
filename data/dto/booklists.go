@@ -26,8 +26,8 @@ type QsFindBooksForBooklist struct {
 	Filters data.Filters
 }
 
-// UpdateBooklist defines the request body for UpdateBooklist service.
-type UpdateBooklist struct {
+// UpdateBooklistRequestBody defines the request body for UpdateBooklist service.
+type UpdateBooklistRequestBody struct {
 	Name        *string `json:"name"`
 	Description *string `json:"description"`
 	Private     *bool   `json:"private"`

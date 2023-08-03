@@ -9,6 +9,16 @@ import (
 	"github.com/emzola/bibliotheca/service"
 )
 
+// ListCategories godoc
+// @Summary List all booklists
+// @Description This endpoint lists all booklists
+// @Tags categories
+// @Accept  json
+// @Produce json
+// @Param token header string true "Bearer token"
+// @Success 200 {array} data.Category
+// @Failure 500
+// @Router /v1/categories [get]
 func (h *Handler) listCategoriesHandler(w http.ResponseWriter, r *http.Request) {
 	categories, err := h.service.ListCategories()
 	if err != nil {
@@ -21,6 +31,22 @@ func (h *Handler) listCategoriesHandler(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
+// ShowCategory godoc
+// @Summary Show details of a category
+// @Description This endpoint shows the details of a specific category
+// @Tags categories
+// @Accept  json
+// @Produce json
+// @Param token header string true "Bearer token"
+// @Param page query int false "Query string param for pagination (min 1)"
+// @Param page_size query int false "Query string param for pagination (max 100)"
+// @Param sort query string false "Sort by ascending or descending order. Asc: title, size, year, datetime. Desc: -title, -size, -year, -datetime"
+// @Param categoryId path int true "ID of category to show"
+// @Success 200 {array} data.Book
+// @Failure 404
+// @Failure 422
+// @Failure 500
+// @Router /v1/categories/{categoryId} [get]
 func (h *Handler) showCategoryHandler(w http.ResponseWriter, r *http.Request) {
 	var qsInput dto.QsShowCategory
 	v := validator.New()

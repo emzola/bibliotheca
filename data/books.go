@@ -15,7 +15,7 @@ const DailyDownloadLimit int8 = 10
 
 // Book defines a book model.
 type Book struct {
-	ID          int64     `json:"id"`
+	ID          int64     `json:"id" `
 	UserID      int64     `json:"user_id"`
 	CreatedAt   time.Time `json:"created_at"`
 	Title       string    `json:"title"`

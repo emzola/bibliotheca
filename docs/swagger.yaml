@@ -1,0 +1,2233 @@
+basePath: /
+definitions:
+  data.Book:
+    properties:
+      author:
+        items:
+          type: string
+        type: array
+      category:
+        type: string
+      cover_path:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      edition:
+        type: string
+      extension:
+        type: string
+      filename:
+        type: string
+      id:
+        type: integer
+      isbn_10:
+        type: string
+      isbn_13:
+        type: string
+      language:
+        type: string
+      page_count:
+        type: integer
+      popularity:
+        type: number
+      publisher:
+        type: string
+      s3_file_key:
+        type: string
+      series:
+        type: string
+      size:
+        type: integer
+      title:
+        type: string
+      user_id:
+        type: integer
+      volume:
+        type: integer
+      year:
+        type: integer
+    type: object
+  data.Booklist:
+    properties:
+      content:
+        $ref: '#/definitions/data.Books'
+      created_at:
+        type: string
+      creator_id:
+        type: integer
+      creator_name:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      private:
+        type: boolean
+      updated_at:
+        type: string
+    type: object
+  data.Books:
+    properties:
+      books:
+        items:
+          $ref: '#/definitions/data.Book'
+        type: array
+      metadata:
+        $ref: '#/definitions/data.Metadata'
+    type: object
+  data.Category:
+    properties:
+      books_count:
+        type: integer
+      category:
+        type: string
+      id:
+        type: integer
+    type: object
+  data.Comment:
+    properties:
+      booklist_id:
+        type: integer
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      parent_id:
+        type: integer
+      user_id:
+        type: integer
+      username:
+        type: string
+    type: object
+  data.Metadata:
+    properties:
+      current_page:
+        type: integer
+      first_page:
+        type: integer
+      last_page:
+        type: integer
+      page_size:
+        type: integer
+      total_records:
+        type: integer
+    type: object
+  data.Request:
+    properties:
+      created_at:
+        type: string
+      expiry:
+        type: string
+      id:
+        type: integer
+      isbn:
+        type: string
+      publisher:
+        type: string
+      status:
+        type: string
+      title:
+        type: string
+      user_id:
+        type: integer
+      waitlist:
+        type: integer
+      year:
+        type: integer
+    type: object
+  data.Review:
+    properties:
+      book_id:
+        type: integer
+      comment:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      rating:
+        type: integer
+      user_id:
+        type: integer
+      username:
+        type: string
+    type: object
+  data.Token:
+    properties:
+      expiry:
+        type: string
+      token:
+        type: string
+    type: object
+  data.User:
+    properties:
+      activated:
+        type: boolean
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  dto.ActivateUserRequestBody:
+    properties:
+      token:
+        type: string
+    type: object
+  dto.CreateActivationTokenRequestBody:
+    properties:
+      email:
+        type: string
+    type: object
+  dto.CreateAuthenticationTokenRequestBody:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  dto.CreateBooklistRequestBody:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+      private:
+        type: boolean
+    type: object
+  dto.CreateCommentReplyRequestBody:
+    properties:
+      content:
+        type: string
+    type: object
+  dto.CreateCommentRequestBody:
+    properties:
+      content:
+        type: string
+    type: object
+  dto.CreatePasswordResetTokenRequestBody:
+    properties:
+      email:
+        type: string
+    type: object
+  dto.CreateRequestRequestBody:
+    properties:
+      isbn:
+        type: string
+    type: object
+  dto.CreateReviewRequestBody:
+    properties:
+      comment:
+        type: string
+      rating:
+        type: integer
+    type: object
+  dto.RegisterUserRequestBody:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+    type: object
+  dto.ResetUserPasswordRequestBody:
+    properties:
+      password:
+        type: string
+      token:
+        type: string
+    type: object
+  dto.UpdateBookRequestBody:
+    properties:
+      author:
+        items:
+          type: string
+        type: array
+      category:
+        type: string
+      description:
+        type: string
+      edition:
+        type: string
+      isbn_10:
+        type: string
+      isbn_13:
+        type: string
+      language:
+        type: string
+      page_count:
+        type: integer
+      popularity:
+        type: number
+      publisher:
+        type: string
+      series:
+        type: string
+      title:
+        type: string
+      volume:
+        type: integer
+      year:
+        type: integer
+    type: object
+  dto.UpdateBooklistRequestBody:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+      private:
+        type: boolean
+    type: object
+  dto.UpdateCommentRequestBody:
+    properties:
+      content:
+        type: string
+    type: object
+  dto.UpdateUserPasswordRequestBody:
+    properties:
+      confirm_new_password:
+        type: string
+      new_password:
+        type: string
+      old_password:
+        type: string
+    type: object
+  dto.UpdateUserRequestBody:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+    type: object
+host: localhost:4000
+info:
+  contact:
+    email: emma.idika@yahoo.com
+    name: API Support
+  description: This is an API service for book uploads and downloads.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Bibliotheca API
+  version: 1.0.0
+paths:
+  /v1/booklists:
+    get:
+      consumes:
+      - application/json
+      description: This endpoint lists all booklists
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: Query string param for search
+        in: query
+        name: search
+        type: string
+      - description: Query string param for pagination (min 1)
+        in: query
+        name: page
+        type: integer
+      - description: Query string param for pagination (max 100)
+        in: query
+        name: page_size
+        type: integer
+      - description: 'Sort by ascending or descending order. Asc: id, created_at,
+          updated_at. Desc: -id, -created_at, -updated_at'
+        in: query
+        name: sort
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/data.Booklist'
+            type: array
+        "422":
+          description: Unprocessable Entity
+        "500":
+          description: Internal Server Error
+      summary: List all booklists
+      tags:
+      - booklists
+    post:
+      consumes:
+      - application/json
+      description: This endpoint creates a new booklist
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: JSON payload required to create a booklist
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateBooklistRequestBody'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/data.Booklist'
+        "400":
+          description: Bad Request
+        "422":
+          description: Unprocessable Entity
+        "500":
+          description: Internal Server Error
+      summary: Create a new booklist
+      tags:
+      - booklists
+  /v1/booklists/{booklistId}:
+    delete:
+      consumes:
+      - application/json
+      description: This endpoint deletes a specific booklist
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: ID of booklist to delete
+        in: path
+        name: booklistId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      summary: Delete a booklist
+      tags:
+      - booklists
+    get:
+      consumes:
+      - application/json
+      description: This endpoint shows the details of a specific booklist
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: ID of booklist to show
+        in: path
+        name: booklistId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/data.Booklist'
+        "404":
+          description: Not Found
+        "422":
+          description: Unprocessable Entity
+        "500":
+          description: Internal Server Error
+      summary: Show details of a booklist
+      tags:
+      - booklists
+    patch:
+      consumes:
+      - application/json
+      description: This endpoint updates the details of a specific booklist
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: JSON Payload required to update a booklist
+        in: body
+        name: booklist
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateBooklistRequestBody'
+      - description: ID of booklist to update
+        in: path
+        name: booklistId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/data.Booklist'
+        "400":
+          description: Bad Request
+        "404":
+          description: Not Found
+        "409":
+          description: Conflict
+        "500":
+          description: Internal Server Error
+      summary: Update the details of a booklist
+      tags:
+      - booklists
+  /v1/booklists/{booklistId}/books:
+    get:
+      consumes:
+      - application/json
+      description: This endpoint searches for books in a specific booklist
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: Query string param for search
+        in: query
+        name: search
+        type: string
+      - description: Query string param for pagination (min 1)
+        in: query
+        name: page
+        type: integer
+      - description: Query string param for pagination (max 100)
+        in: query
+        name: page_size
+        type: integer
+      - description: 'Sort by ascending or descending order. Asc: id. Desc: -id.'
+        in: query
+        name: sort
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/data.Book'
+            type: array
+        "422":
+          description: Unprocessable Entity
+        "500":
+          description: Internal Server Error
+      summary: Find books for a booklist
+      tags:
+      - booklists
+  /v1/booklists/{booklistId}/books/{bookId}:
+    delete:
+      consumes:
+      - application/json
+      description: This endpoint deletes a book from a booklist
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: ID of booklist to delete book from
+        in: path
+        name: booklistId
+        required: true
+        type: integer
+      - description: ID of book to delete
+        in: path
+        name: bookId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      summary: Delete a book from a booklist
+      tags:
+      - booklists
+    get:
+      consumes:
+      - application/json
+      description: This endpoint shows the details of a book when searched for in
+        a booklist
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: ID of book to show
+        in: path
+        name: bookId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/data.Book'
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      summary: Show details of a book in a booklist
+      tags:
+      - booklists
+    post:
+      consumes:
+      - application/json
+      description: This endpoint adds a book to a booklist
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: ID of booklist to add book to
+        in: path
+        name: booklistId
+        required: true
+        type: integer
+      - description: ID of book to add
+        in: path
+        name: bookId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "422":
+          description: Unprocessable Entity
+        "500":
+          description: Internal Server Error
+      summary: Add a book to a booklist
+      tags:
+      - booklists
+  /v1/booklists/{booklistId}/comments:
+    delete:
+      consumes:
+      - application/json
+      description: This endpoint deletes a specific booklist comment
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: ID of booklist comment to delete
+        in: path
+        name: commentId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      summary: Delete a booklist comment
+      tags:
+      - comments
+    get:
+      consumes:
+      - application/json
+      description: This endpoint lists all comments
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/data.Comment'
+            type: array
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      summary: List all comments
+      tags:
+      - comments
+    patch:
+      consumes:
+      - application/json
+      description: This endpoint updates the details of a specific booklist comment
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: JSON Payload required to update a booklist comment
+        in: body
+        name: comment
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateCommentRequestBody'
+      - description: ID of comment to update
+        in: path
+        name: commentId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/data.Comment'
+        "400":
+          description: Bad Request
+        "404":
+          description: Not Found
+        "409":
+          description: Conflict
+        "500":
+          description: Internal Server Error
+      summary: Update the details of a booklist comment
+      tags:
+      - comments
+    post:
+      consumes:
+      - application/json
+      description: This endpoint creates a new booklist comment
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: ID of booklist for comment
+        in: path
+        name: booklistId
+        required: true
+        type: integer
+      - description: JSON payload required to create a booklist comment
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateCommentRequestBody'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/data.Comment'
+        "400":
+          description: Bad Request
+        "404":
+          description: Not Found
+        "422":
+          description: Unprocessable Entity
+        "500":
+          description: Internal Server Error
+      summary: Create a new booklist comment
+      tags:
+      - comments
+  /v1/booklists/{booklistId}/comments/{commentId}:
+    post:
+      consumes:
+      - application/json
+      description: This endpoint creates a new comment child
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: ID of booklist for comment
+        in: path
+        name: booklistId
+        required: true
+        type: integer
+      - description: ID of parent comment
+        in: path
+        name: commentId
+        required: true
+        type: integer
+      - description: JSON payload required to create a comment child
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateCommentReplyRequestBody'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/data.Comment'
+        "400":
+          description: Bad Request
+        "404":
+          description: Not Found
+        "422":
+          description: Unprocessable Entity
+        "500":
+          description: Internal Server Error
+      summary: Reply a booklist comment
+      tags:
+      - comments
+  /v1/booklists/{booklistId}/favourite:
+    delete:
+      consumes:
+      - application/json
+      description: This endpoint deletes a specific booklist from favourites
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: ID of booklist to delete from favourites
+        in: path
+        name: booklistId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      summary: Delete a booklist from favourites
+      tags:
+      - booklists
+    post:
+      consumes:
+      - application/json
+      description: This endpoint marks a specific booklist as favourite
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: ID of booklist to favourite
+        in: path
+        name: booklistId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "422":
+          description: Unprocessable Entity
+        "500":
+          description: Internal Server Error
+      summary: Mark a booklist as favourite
+      tags:
+      - booklists
+  /v1/books:
+    get:
+      consumes:
+      - application/json
+      description: This endpoint lists all books
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: Query string param for search
+        in: query
+        name: search
+        type: string
+      - description: Query string param to filter by year
+        in: query
+        name: from_year
+        type: string
+      - description: Query string param to filter by year
+        in: query
+        name: to_year
+        type: string
+      - description: Query string param to filter by language
+        in: query
+        name: language
+        type: string
+      - description: Query string param to filter by file extension
+        in: query
+        name: extension
+        type: string
+      - description: Query string param for pagination (min 1)
+        in: query
+        name: page
+        type: integer
+      - description: Query string param for pagination (max 100)
+        in: query
+        name: page_size
+        type: integer
+      - description: 'Sort by ascending or descending order. Asc: id, title, year,
+          size, created_at, popularity. Desc: -id, -title, -year, -size, -created_at,
+          -popularity'
+        in: query
+        name: sort
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/data.Book'
+            type: array
+        "422":
+          description: Unprocessable Entity
+        "500":
+          description: Internal Server Error
+      summary: List all books
+      tags:
+      - books
+    post:
+      consumes:
+      - application/json
+      description: This endpoint uploads a new book
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: File to upload
+        in: formData
+        name: book
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/data.Book'
+        "400":
+          description: Bad Request
+        "413":
+          description: Request Entity Too Large
+        "415":
+          description: Unsupported Media Type
+        "500":
+          description: Internal Server Error
+      summary: Upload a new book
+      tags:
+      - books
+  /v1/books/{bookId}:
+    delete:
+      consumes:
+      - application/json
+      description: This endpoint deletes a specific book
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: ID of book to delete
+        in: path
+        name: bookId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      summary: Delete a book
+      tags:
+      - books
+    get:
+      consumes:
+      - application/json
+      description: This endpoint shows the details of a specific book
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: ID of book to show
+        in: path
+        name: bookId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/data.Book'
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      summary: Show details of a book
+      tags:
+      - books
+    patch:
+      consumes:
+      - application/json
+      description: This endpoint updates the details of a specific book
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: JSON Payload required to update a book
+        in: body
+        name: book
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateBookRequestBody'
+      - description: ID of book to update
+        in: path
+        name: bookId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/data.Book'
+        "400":
+          description: Bad Request
+        "404":
+          description: Not Found
+        "409":
+          description: Conflict
+        "500":
+          description: Internal Server Error
+      summary: Update the details of a book
+      tags:
+      - books
+  /v1/books/{bookId}/cover:
+    post:
+      consumes:
+      - application/json
+      description: This endpoint uploads a book cover
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: ID of book for cover upload
+        in: path
+        name: bookId
+        required: true
+        type: integer
+      - description: Image to upload
+        in: formData
+        name: cover
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/data.Book'
+        "400":
+          description: Bad Request
+        "404":
+          description: Not Found
+        "409":
+          description: Conflict
+        "413":
+          description: Request Entity Too Large
+        "415":
+          description: Unsupported Media Type
+        "500":
+          description: Internal Server Error
+      summary: Upload a book cover
+      tags:
+      - books
+  /v1/books/{bookId}/download:
+    delete:
+      consumes:
+      - application/json
+      description: This endpoint deletes a specific book from download history
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: ID of book to delete from download history
+        in: path
+        name: bookId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      summary: Delete a book from downloads
+      tags:
+      - books
+    get:
+      consumes:
+      - application/json
+      description: This endpoint downloads a specific book
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: ID of book to download
+        in: path
+        name: bookId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "403":
+          description: Forbidden
+        "404":
+          description: Not Found
+        "422":
+          description: Unprocessable Entity
+        "500":
+          description: Internal Server Error
+      summary: Download a book
+      tags:
+      - books
+  /v1/books/{bookId}/favourite:
+    delete:
+      consumes:
+      - application/json
+      description: This endpoint deletes a specific book from favourites
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: ID of book to delete from favourites
+        in: path
+        name: bookId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      summary: Delete a book from favourites
+      tags:
+      - books
+    post:
+      consumes:
+      - application/json
+      description: This endpoint marks a specific book as favourite
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: ID of book to favourite
+        in: path
+        name: bookId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "422":
+          description: Unprocessable Entity
+        "500":
+          description: Internal Server Error
+      summary: Mark a book as favourite
+      tags:
+      - books
+  /v1/books/{bookId}/reviews:
+    get:
+      consumes:
+      - application/json
+      description: This endpoint lists all reviews
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: ID of book for review
+        in: path
+        name: bookId
+        required: true
+        type: integer
+      - description: Query string param for pagination (min 1)
+        in: query
+        name: page
+        type: integer
+      - description: Query string param for pagination (max 100)
+        in: query
+        name: page_size
+        type: integer
+      - description: 'Sort by ascending or descending order. Asc: id, vote. Desc:
+          -id, -vote'
+        in: query
+        name: sort
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/data.Review'
+            type: array
+        "422":
+          description: Unprocessable Entity
+        "500":
+          description: Internal Server Error
+      summary: List all reviews
+      tags:
+      - reviews
+    post:
+      consumes:
+      - application/json
+      description: This endpoint creates a new book request
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: ID of book for review
+        in: path
+        name: bookId
+        required: true
+        type: integer
+      - description: JSON payload required to create a book review
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateReviewRequestBody'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/data.Review'
+        "400":
+          description: Bad Request
+        "404":
+          description: Not Found
+        "422":
+          description: Unprocessable Entity
+        "500":
+          description: Internal Server Error
+      summary: Create a new book review
+      tags:
+      - reviews
+  /v1/books/{bookId}/reviews/{reviewId}:
+    delete:
+      consumes:
+      - application/json
+      description: This endpoint deletes a book review
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: ID of book for review
+        in: path
+        name: bookId
+        required: true
+        type: integer
+      - description: ID of review to delete
+        in: path
+        name: reviewId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      summary: Delete a book review
+      tags:
+      - reviews
+    get:
+      consumes:
+      - application/json
+      description: This endpoint shows the details of a specific book review
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: ID of book for review
+        in: path
+        name: bookId
+        required: true
+        type: integer
+      - description: ID of review to show
+        in: path
+        name: reviewId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/data.Review'
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      summary: Show details of a book review
+      tags:
+      - reviews
+    patch:
+      consumes:
+      - application/json
+      description: This endpoint shows the details of a specific book review
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: ID of book for review
+        in: path
+        name: bookId
+        required: true
+        type: integer
+      - description: ID of review to update
+        in: path
+        name: reviewId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/data.Review'
+        "400":
+          description: Bad Request
+        "404":
+          description: Not Found
+        "409":
+          description: Conflict
+        "422":
+          description: Unprocessable Entity
+        "500":
+          description: Internal Server Error
+      summary: Show details of a book review
+      tags:
+      - reviews
+  /v1/categories:
+    get:
+      consumes:
+      - application/json
+      description: This endpoint lists all booklists
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/data.Category'
+            type: array
+        "500":
+          description: Internal Server Error
+      summary: List all booklists
+      tags:
+      - categories
+  /v1/categories/{categoryId}:
+    get:
+      consumes:
+      - application/json
+      description: This endpoint shows the details of a specific category
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: Query string param for pagination (min 1)
+        in: query
+        name: page
+        type: integer
+      - description: Query string param for pagination (max 100)
+        in: query
+        name: page_size
+        type: integer
+      - description: 'Sort by ascending or descending order. Asc: title, size, year,
+          datetime. Desc: -title, -size, -year, -datetime'
+        in: query
+        name: sort
+        type: string
+      - description: ID of category to show
+        in: path
+        name: categoryId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/data.Book'
+            type: array
+        "404":
+          description: Not Found
+        "422":
+          description: Unprocessable Entity
+        "500":
+          description: Internal Server Error
+      summary: Show details of a category
+      tags:
+      - categories
+  /v1/requests:
+    get:
+      consumes:
+      - application/json
+      description: This endpoint lists all book requests
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: Query string param for search
+        in: query
+        name: search
+        type: string
+      - description: Query string param for pagination (min 1)
+        in: query
+        name: page
+        type: integer
+      - description: Query string param for pagination (max 100)
+        in: query
+        name: page_size
+        type: integer
+      - description: 'Query string param for book status (options: active, expired,
+          completed)'
+        in: query
+        name: status
+        type: integer
+      - description: 'Sort by ascending or descending order. Asc: id. Desc: -id'
+        in: query
+        name: sort
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/data.Request'
+            type: array
+        "422":
+          description: Unprocessable Entity
+        "500":
+          description: Internal Server Error
+      summary: List all book requests
+      tags:
+      - requests
+    post:
+      consumes:
+      - application/json
+      description: This endpoint creates a new book request
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: JSON payload required to create a book request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateRequestRequestBody'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/data.Request'
+        "400":
+          description: Bad Request
+        "404":
+          description: Not Found
+        "422":
+          description: Unprocessable Entity
+        "500":
+          description: Internal Server Error
+      summary: Create a new book request
+      tags:
+      - requests
+  /v1/requests/{requestId}:
+    get:
+      consumes:
+      - application/json
+      description: This endpoint shows the details of a specific book request
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: ID of request to show
+        in: path
+        name: requestId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/data.Request'
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      summary: Show details of a book request
+      tags:
+      - requests
+  /v1/requests/{requestId}/subscribe:
+    post:
+      consumes:
+      - application/json
+      description: This endpoint subscribes to a book request
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: ID of request to subscribe to
+        in: path
+        name: bookId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "404":
+          description: Not Found
+        "409":
+          description: Conflict
+        "422":
+          description: Unprocessable Entity
+        "500":
+          description: Internal Server Error
+      summary: Subscribe to a book request
+      tags:
+      - requests
+  /v1/requests/{requestId}/unsubscribe:
+    delete:
+      consumes:
+      - application/json
+      description: This endpoint unsubscribes from a book request
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: ID of request to unsubscribe from
+        in: path
+        name: bookId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "404":
+          description: Not Found
+        "422":
+          description: Unprocessable Entity
+        "500":
+          description: Internal Server Error
+      summary: Unsubscribe from a book request
+      tags:
+      - requests
+  /v1/tokens/activation:
+    post:
+      consumes:
+      - application/json
+      description: This endpoint creates a new activation token
+      parameters:
+      - description: JSON payload required to create an activation token
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateActivationTokenRequestBody'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+        "400":
+          description: Bad Request
+        "422":
+          description: Unprocessable Entity
+        "500":
+          description: Internal Server Error
+      summary: Create a new activation token
+      tags:
+      - tokens
+  /v1/tokens/authentication:
+    delete:
+      consumes:
+      - application/json
+      description: This endpoint logs out a user by deleteting a user authentication
+        token
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "500":
+          description: Internal Server Error
+      summary: Logout
+      tags:
+      - tokens
+    post:
+      consumes:
+      - application/json
+      description: This endpoint logs in a user by creating a user authentication
+        token
+      parameters:
+      - description: JSON payload required to create an authentication token
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateAuthenticationTokenRequestBody'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/data.Token'
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "422":
+          description: Unprocessable Entity
+        "500":
+          description: Internal Server Error
+      summary: Login
+      tags:
+      - tokens
+  /v1/tokens/password-reset:
+    post:
+      consumes:
+      - application/json
+      description: This endpoint creates a password reset token
+      parameters:
+      - description: JSON payload required to create a password reset token
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreatePasswordResetTokenRequestBody'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+        "400":
+          description: Bad Request
+        "422":
+          description: Unprocessable Entity
+        "500":
+          description: Internal Server Error
+      summary: Create a password reset token
+      tags:
+      - tokens
+  /v1/users:
+    post:
+      consumes:
+      - application/json
+      description: This endpoint registers a new user
+      parameters:
+      - description: JSON payload required to create a new user
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RegisterUserRequestBody'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/data.User'
+        "400":
+          description: Bad Request
+        "422":
+          description: Unprocessable Entity
+        "500":
+          description: Internal Server Error
+      summary: Register a user account
+      tags:
+      - users
+  /v1/users/activated:
+    patch:
+      consumes:
+      - application/json
+      description: This endpoint updates a user
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: JSON payload required to update a user
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateUserRequestBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/data.User'
+        "400":
+          description: Bad Request
+        "404":
+          description: Not Found
+        "422":
+          description: Unprocessable Entity
+        "500":
+          description: Internal Server Error
+      summary: Update a user
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: This endpoint activates a newly registered user
+      parameters:
+      - description: JSON payload required to activate a user
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ActivateUserRequestBody'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/data.User'
+        "400":
+          description: Bad Request
+        "409":
+          description: Conflict
+        "422":
+          description: Unprocessable Entity
+        "500":
+          description: Internal Server Error
+      summary: Activate a user account
+      tags:
+      - users
+  /v1/users/booklists:
+    get:
+      consumes:
+      - application/json
+      description: This endpoint lists all user's booklists
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: Query string param for pagination (min 1)
+        in: query
+        name: page
+        type: integer
+      - description: Query string param for pagination (max 100)
+        in: query
+        name: page_size
+        type: integer
+      - description: 'Sort by ascending or descending order. Asc: id, created_at,
+          updated_at. Desc: -id, -created_at, -updated_at'
+        in: query
+        name: sort
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/data.Booklist'
+            type: array
+        "422":
+          description: Unprocessable Entity
+        "500":
+          description: Internal Server Error
+      summary: List all user's booklists
+      tags:
+      - users
+  /v1/users/booklists/favourite:
+    get:
+      consumes:
+      - application/json
+      description: This endpoint lists all user's favourite booklists
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: Query string param for pagination (min 1)
+        in: query
+        name: page
+        type: integer
+      - description: Query string param for pagination (max 100)
+        in: query
+        name: page_size
+        type: integer
+      - description: 'Sort by ascending or descending order. Asc: datetime, created_at,
+          updated_at. Desc: -datetime, -created_at, -updated_at'
+        in: query
+        name: sort
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/data.Booklist'
+            type: array
+        "422":
+          description: Unprocessable Entity
+        "500":
+          description: Internal Server Error
+      summary: List all user's favourite booklists
+      tags:
+      - users
+  /v1/users/books:
+    get:
+      consumes:
+      - application/json
+      description: This endpoint lists all user's books
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: Query string param for pagination (min 1)
+        in: query
+        name: page
+        type: integer
+      - description: Query string param for pagination (max 100)
+        in: query
+        name: page_size
+        type: integer
+      - description: 'Query string param for book status (options: active, expired,
+          completed)'
+        in: query
+        name: status
+        type: integer
+      - description: 'Sort by ascending or descending order. Asc: created_at, popularity,
+          size. Desc: -created_at, -popularity, -size'
+        in: query
+        name: sort
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/data.Book'
+            type: array
+        "422":
+          description: Unprocessable Entity
+        "500":
+          description: Internal Server Error
+      summary: List all user's books
+      tags:
+      - users
+  /v1/users/books/favourite:
+    get:
+      consumes:
+      - application/json
+      description: This endpoint lists all user's favourite books
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: Query string param for pagination (min 1)
+        in: query
+        name: page
+        type: integer
+      - description: Query string param for pagination (max 100)
+        in: query
+        name: page_size
+        type: integer
+      - description: 'Query string param for book status (options: active, expired,
+          completed)'
+        in: query
+        name: status
+        type: integer
+      - description: 'Sort by ascending or descending order. Asc: title, size, year,
+          datetime. Desc: -title, -size, -year, -datetime'
+        in: query
+        name: sort
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/data.Book'
+            type: array
+        "422":
+          description: Unprocessable Entity
+        "500":
+          description: Internal Server Error
+      summary: List all user's favourite books
+      tags:
+      - users
+  /v1/users/downloads:
+    get:
+      consumes:
+      - application/json
+      description: This endpoint lists all user's downloads
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: Query string param to filter by date
+        in: query
+        name: from_date
+        type: string
+      - description: Query string param to filter by date
+        in: query
+        name: to_date
+        type: string
+      - description: Query string param for pagination (min 1)
+        in: query
+        name: page
+        type: integer
+      - description: Query string param for pagination (max 100)
+        in: query
+        name: page_size
+        type: integer
+      - description: 'Query string param for book status (options: active, expired,
+          completed)'
+        in: query
+        name: status
+        type: integer
+      - description: 'Sort by ascending or descending order. Asc: datetime. Desc:
+          -datetime'
+        in: query
+        name: sort
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/data.Book'
+            type: array
+        "422":
+          description: Unprocessable Entity
+        "500":
+          description: Internal Server Error
+      summary: List all user's downloads
+      tags:
+      - users
+  /v1/users/password:
+    put:
+      consumes:
+      - application/json
+      description: This endpoint resets a logged out user's password
+      parameters:
+      - description: JSON payload required to reset a non logged in user's password
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ResetUserPasswordRequestBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "409":
+          description: Conflict
+        "422":
+          description: Unprocessable Entity
+        "500":
+          description: Internal Server Error
+      summary: Reset password
+      tags:
+      - users
+  /v1/users/profile:
+    delete:
+      consumes:
+      - application/json
+      description: This endpoint deletes a user's account
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      summary: Delete user
+      tags:
+      - users
+    get:
+      consumes:
+      - application/json
+      description: This endpoint shows the details of a logged in user
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/data.User'
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      summary: Show details of a logged in user
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: This endpoint updates a logged in user's password
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: JSON payload required to update a user's password
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateUserPasswordRequestBody'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/data.User'
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "409":
+          description: Conflict
+        "422":
+          description: Unprocessable Entity
+        "500":
+          description: Internal Server Error
+      summary: Update a user's password
+      tags:
+      - users
+  /v1/users/requests:
+    get:
+      consumes:
+      - application/json
+      description: This endpoint lists all user's book requests
+      parameters:
+      - description: Bearer token
+        in: header
+        name: token
+        required: true
+        type: string
+      - description: Query string param for pagination (min 1)
+        in: query
+        name: page
+        type: integer
+      - description: Query string param for pagination (max 100)
+        in: query
+        name: page_size
+        type: integer
+      - description: 'Query string param for book status (options: active, expired,
+          completed)'
+        in: query
+        name: status
+        type: integer
+      - description: 'Sort by ascending or descending order. Asc: datetime. Desc:
+          -datetime'
+        in: query
+        name: sort
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/data.Request'
+            type: array
+        "422":
+          description: Unprocessable Entity
+        "500":
+          description: Internal Server Error
+      summary: List all user's book requests
+      tags:
+      - users
+swagger: "2.0"

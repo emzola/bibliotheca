@@ -10,6 +10,20 @@ import (
 	"github.com/emzola/bibliotheca/service"
 )
 
+// CreateRequest godoc
+// @Summary Create a new book request
+// @Description This endpoint creates a new book request
+// @Tags requests
+// @Accept  json
+// @Produce json
+// @Param token header string true "Bearer token"
+// @Param body body dto.CreateRequestRequestBody true "JSON payload required to create a book request"
+// @Success 201 {object} data.Request
+// @Failure 400
+// @Failure 404
+// @Failure 422
+// @Failure 500
+// @Router /v1/requests [post]
 func (h *Handler) createRequestHandler(w http.ResponseWriter, r *http.Request) {
 	var requestBody dto.CreateRequestRequestBody
 	err := h.decodeJSON(w, r, &requestBody)
@@ -40,6 +54,18 @@ func (h *Handler) createRequestHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ShowRequest godoc
+// @Summary Show details of a book request
+// @Description This endpoint shows the details of a specific book request
+// @Tags requests
+// @Accept  json
+// @Produce json
+// @Param token header string true "Bearer token"
+// @Param requestId path int true "ID of request to show"
+// @Success 200 {object} data.Request
+// @Failure 404
+// @Failure 500
+// @Router /v1/requests/{requestId} [get]
 func (h *Handler) showRequestHandler(w http.ResponseWriter, r *http.Request) {
 	requestID, err := h.readIDParam(r, "requestId")
 	if err != nil {
@@ -62,6 +88,22 @@ func (h *Handler) showRequestHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ListRequests godoc
+// @Summary List all book requests
+// @Description This endpoint lists all book requests
+// @Tags requests
+// @Accept  json
+// @Produce json
+// @Param token header string true "Bearer token"
+// @Param search query string false "Query string param for search"
+// @Param page query int false "Query string param for pagination (min 1)"
+// @Param page_size query int false "Query string param for pagination (max 100)"
+// @Param status query int false "Query string param for book status (options: active, expired, completed)"
+// @Param sort query string false "Sort by ascending or descending order. Asc: id. Desc: -id"
+// @Success 200 {array} data.Request
+// @Failure 422
+// @Failure 500
+// @Router /v1/requests [get]
 func (h *Handler) listRequestsHandler(w http.ResponseWriter, r *http.Request) {
 	var qsInput dto.QsListRequest
 	v := validator.New()
@@ -88,6 +130,21 @@ func (h *Handler) listRequestsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// SubscribeRequest godoc
+// @Summary Subscribe to a book request
+// @Description This endpoint subscribes to a book request
+// @Tags requests
+// @Accept  json
+// @Produce json
+// @Param token header string true "Bearer token"
+// @Param bookId path int true "ID of request to subscribe to"
+// @Success 200
+// @Failure 400
+// @Failure 404
+// @Failure 409
+// @Failure 422
+// @Failure 500
+// @Router /v1/requests/{requestId}/subscribe [post]
 func (h *Handler) subscribeRequestHandler(w http.ResponseWriter, r *http.Request) {
 	requestID, err := h.readIDParam(r, "requestId")
 	if err != nil {
@@ -115,6 +172,20 @@ func (h *Handler) subscribeRequestHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// UnsubscribeRequest godoc
+// @Summary Unsubscribe from a book request
+// @Description This endpoint unsubscribes from a book request
+// @Tags requests
+// @Accept  json
+// @Produce json
+// @Param token header string true "Bearer token"
+// @Param bookId path int true "ID of request to unsubscribe from"
+// @Success 200
+// @Failure 400
+// @Failure 404
+// @Failure 422
+// @Failure 500
+// @Router /v1/requests/{requestId}/unsubscribe [delete]
 func (h *Handler) unsubscribeRequestHandler(w http.ResponseWriter, r *http.Request) {
 	requestID, err := h.readIDParam(r, "requestId")
 	if err != nil {
