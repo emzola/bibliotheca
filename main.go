@@ -11,6 +11,7 @@ import (
 	"github.com/emzola/bibliotheca/repository"
 	"github.com/emzola/bibliotheca/repository/postgres.go"
 	"github.com/emzola/bibliotheca/service"
+	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/jellydator/ttlcache/v3"
 )
 
@@ -33,10 +34,11 @@ type app struct {
 // @host localhost:4000
 // @BasePath /
 func main() {
+	var cfg config.Config
 	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
 
 	// Initialize configuration
-	cfg, err := config.Decode()
+	err := cleanenv.ReadConfig("config.yml", &cfg)
 	if err != nil {
 		logger.PrintFatal(err, nil)
 	}

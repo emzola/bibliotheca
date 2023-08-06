@@ -1,65 +1,43 @@
 package config
 
-import (
-	"os"
-
-	"gopkg.in/yaml.v3"
-)
-
 // Config defines the app configuration.
 type Config struct {
 	Server struct {
-		Port int    `yaml:"port"`
-		Env  string `yaml:"env"`
+		Port int    `yaml:"port" env:"PORT"`
+		Env  string `yaml:"env" env:"ENV"`
 	} `yaml:"server"`
 	Database struct {
-		DSN          string `yaml:"dsn"`
-		MaxOpenConns int    `yaml:"max_open_conns"`
-		MaxIdleConns int    `yaml:"max_idle_conns"`
-		MaxIdleTime  string `yaml:"max_idle_time"`
+		DSN          string `yaml:"dsn" env:"DSN"`
+		MaxOpenConns int    `yaml:"max_open_conns" env:"MAXOPENCONNS"`
+		MaxIdleConns int    `yaml:"max_idle_conns" env:"MAXIDLECONNS"`
+		MaxIdleTime  string `yaml:"max_idle_time" env:"MAXIDLETIME"`
 	} `yaml:"database"`
 	Smtp struct {
-		Host     string `yaml:"host"`
-		Port     int    `yaml:"port"`
-		Username string `yaml:"username"`
-		Password string `yaml:"password"`
-		Sender   string `yaml:"sender"`
+		Host     string `yaml:"host" env:"SMTPHOST"`
+		Port     int    `yaml:"port" env:"SMTPPORT"`
+		Username string `yaml:"username" env:"SMTPUSERNAME"`
+		Password string `yaml:"password" env:"SMTPPASSWORD"`
+		Sender   string `yaml:"sender" env:"SMTPSENDER"`
 	} `yaml:"smtp"`
 	S3 struct {
-		AccessKeyID     string `yaml:"access_key_id"`
-		SecretAccessKey string `yaml:"secret_access_key"`
-		Region          string `yaml:"region"`
-		Bucket          string `yaml:"bucket"`
+		AccessKeyID     string `yaml:"access_key_id" env:"ACCESSKEYID"`
+		SecretAccessKey string `yaml:"secret_access_key" env:"SECRETACCESSKEY"`
+		Region          string `yaml:"region" env:"REGION"`
+		Bucket          string `yaml:"bucket" env:"BUCKET"`
 	} `yaml:"s3"`
 	Limiter struct {
-		RPS     float64 `yaml:"rps"`
-		Burst   int     `yaml:"burst"`
-		Enabled bool    `yaml:"enabled"`
+		RPS     float64 `yaml:"rps" env:"RPS"`
+		Burst   int     `yaml:"burst" env:"BURST"`
+		Enabled bool    `yaml:"enabled" env:"LENABLED"`
 	} `yaml:"limiter"`
 	Cors struct {
-		TrustedOrigins []string `yaml:"trusted_origins"`
+		TrustedOrigins []string `yaml:"trusted_origins" env:"TRUSTEDORIGINS"`
 	} `yaml:"cors"`
 	Metrics struct {
-		Enabled bool `yaml:"enabled"`
+		Enabled bool `yaml:"enabled" env:"MENABLED"`
 	} `yaml:"metrics"`
 	BasicAuth struct {
-		Username string `yaml:"username"`
-		Password string `yaml:"password"`
+		Username string `yaml:"username" env:"USERNAME"`
+		Password string `yaml:"password" env:"PASSWORD"`
 	} `yaml:"basic_auth"`
-}
-
-// Decode de-serializes the config.yml file into Go types.
-func Decode() (Config, error) {
-	f, err := os.Open("config.yml")
-	if err != nil {
-		return Config{}, err
-	}
-	defer f.Close()
-	var cfg Config
-	decoder := yaml.NewDecoder(f)
-	err = decoder.Decode(&cfg)
-	if err != nil {
-		return Config{}, err
-	}
-	return cfg, nil
 }
