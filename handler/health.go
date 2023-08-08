@@ -6,7 +6,7 @@ func (h *Handler) healthcheckHandler(w http.ResponseWriter, r *http.Request) {
 	health := envelope{
 		"status": "available",
 		"system_info": map[string]string{
-			"environment": h.config.Server.Env,
+			"environment": h.config.Env,
 			"version":     "1.0.0",
 		},
 	}

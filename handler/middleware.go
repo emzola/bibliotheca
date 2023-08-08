@@ -4,11 +4,9 @@ import (
 	"crypto/sha256"
 	"crypto/subtle"
 	"errors"
-	"expvar"
 	"fmt"
 	"net"
 	"net/http"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -16,7 +14,6 @@ import (
 	"github.com/emzola/bibliotheca/data"
 	"github.com/emzola/bibliotheca/internal/validator"
 	"github.com/emzola/bibliotheca/service"
-	"github.com/felixge/httpsnoop"
 	"github.com/jellydator/ttlcache/v3"
 	"golang.org/x/time/rate"
 )
@@ -79,7 +76,7 @@ func (h *Handler) rateLimit(next http.Handler) http.Handler {
 			// initialize a new rate limiter and add the IP address and limiter to the map.
 			if _, found := clients[ip]; !found {
 				clients[ip] = &client{
-					limiter: rate.NewLimiter(rate.Limit(h.config.Limiter.RPS), h.config.Limiter.Burst),
+					limiter: rate.NewLimiter(rate.Limit(h.config.Limiter.Rps), h.config.Limiter.Burst),
 				}
 			}
 			// Update the last seen time for the client
@@ -344,26 +341,6 @@ func (h *Handler) requireCommentOwnerPermission(next http.HandlerFunc) http.Hand
 		next.ServeHTTP(w, r)
 	})
 	return h.requireActivatedUser(fn)
-}
-
-// metrics middleware exposes request-level metrics.
-func (h *Handler) metrics(next http.Handler) http.Handler {
-	if h.config.Metrics.Enabled {
-		totalRequestsReceived := expvar.NewInt("total_requests_received")
-		totalResponsesSent := expvar.NewInt("total_responses_sent")
-		totalProcessingTimeMicrosecond := expvar.NewInt("total_processing_time_μs")
-		totalResponsesSentBystatus := expvar.NewMap("total_responses_sent_by_status")
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			totalRequestsReceived.Add(1)
-			metrics := httpsnoop.CaptureMetrics(next, w, r)
-			totalResponsesSent.Add(1)
-			totalProcessingTimeMicrosecond.Add(metrics.Duration.Microseconds())
-			totalResponsesSentBystatus.Add(strconv.Itoa(metrics.Code), 1)
-		})
-	}
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		next.ServeHTTP(w, r)
-	})
 }
 
 // basicAuth middleware implements basic authentication for the /debug/vars endpoint.

@@ -85,5 +85,5 @@ func (h *Handler) Routes() http.Handler {
 	router.HandlerFunc(http.MethodGet, "/spec", h.handleSwaggerFile())
 	router.HandlerFunc(http.MethodGet, "/docs/*any", httpSwagger.Handler(httpSwagger.URL("/spec")))
 
-	return h.metrics(h.recoverPanic(h.enableCORS(h.rateLimit(h.authenticate(router)))))
+	return h.recoverPanic(h.enableCORS(h.rateLimit(h.authenticate(router))))
 }

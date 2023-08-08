@@ -51,7 +51,7 @@ func (s *service) CreateActivationToken(email string) error {
 			"userName":        strings.Split(user.Name, " ")[0],
 			"activationToken": token.Plaintext,
 		}
-		mailer := mailer.New(s.config.Smtp.Host, s.config.Smtp.Port, s.config.Smtp.Username, s.config.Smtp.Password, s.config.Smtp.Sender)
+		mailer := mailer.New(s.config.SMTP.Host, s.config.SMTP.Port, s.config.SMTP.Username, s.config.SMTP.Password, s.config.SMTP.Sender)
 		err := mailer.Send(user.Email, "token_activation.tmpl", data)
 		if err != nil {
 			s.logger.PrintError(err, nil)
@@ -136,7 +136,7 @@ func (s *service) CreatePasswordResetToken(email string) error {
 			"userName":           strings.Split(user.Name, " ")[0],
 			"passwordResetToken": token.Plaintext,
 		}
-		mailer := mailer.New(s.config.Smtp.Host, s.config.Smtp.Port, s.config.Smtp.Username, s.config.Smtp.Password, s.config.Smtp.Sender)
+		mailer := mailer.New(s.config.SMTP.Host, s.config.SMTP.Port, s.config.SMTP.Username, s.config.SMTP.Password, s.config.SMTP.Sender)
 		err := mailer.Send(user.Email, "token_password_reset.tmpl", data)
 		if err != nil {
 			s.logger.PrintError(err, nil)

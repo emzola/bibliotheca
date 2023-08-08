@@ -66,7 +66,7 @@ func (s *service) RegisterUser(name string, email string, password string) (*dat
 			"userName":        strings.Split(user.Name, " ")[0],
 			"activationToken": token.Plaintext,
 		}
-		mailer := mailer.New(s.config.Smtp.Host, s.config.Smtp.Port, s.config.Smtp.Username, s.config.Smtp.Password, s.config.Smtp.Sender)
+		mailer := mailer.New(s.config.SMTP.Host, s.config.SMTP.Port, s.config.SMTP.Username, s.config.SMTP.Password, s.config.SMTP.Sender)
 		err := mailer.Send(user.Email, "user_welcome.tmpl", data)
 		if err != nil {
 			s.logger.PrintError(err, nil)
@@ -222,7 +222,7 @@ func (s *service) UpdateUserPassword(ID int64, old string, new string, confirm s
 		data := map[string]string{
 			"userName": strings.Split(user.Name, " ")[0],
 		}
-		mailer := mailer.New(s.config.Smtp.Host, s.config.Smtp.Port, s.config.Smtp.Username, s.config.Smtp.Password, s.config.Smtp.Sender)
+		mailer := mailer.New(s.config.SMTP.Host, s.config.SMTP.Port, s.config.SMTP.Username, s.config.SMTP.Password, s.config.SMTP.Sender)
 		err = mailer.Send(user.Email, "user_password_change.tmpl", data)
 		if err != nil {
 			s.logger.PrintError(err, nil)
@@ -288,7 +288,7 @@ func (s *service) ResetUserPassword(password string, token string) error {
 		data := map[string]string{
 			"userName": strings.Split(user.Name, " ")[0],
 		}
-		mailer := mailer.New(s.config.Smtp.Host, s.config.Smtp.Port, s.config.Smtp.Username, s.config.Smtp.Password, s.config.Smtp.Sender)
+		mailer := mailer.New(s.config.SMTP.Host, s.config.SMTP.Port, s.config.SMTP.Username, s.config.SMTP.Password, s.config.SMTP.Sender)
 		err = mailer.Send(user.Email, "user_password_change.tmpl", data)
 		if err != nil {
 			s.logger.PrintError(err, nil)

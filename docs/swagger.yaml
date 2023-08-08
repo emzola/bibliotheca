@@ -310,7 +310,7 @@ definitions:
       name:
         type: string
     type: object
-host: localhost:4000
+host: https://bibliotheca-api-dev.fl0.io
 info:
   contact:
     email: emma.idika@yahoo.com

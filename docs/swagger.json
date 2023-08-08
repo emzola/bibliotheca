@@ -14,7 +14,7 @@
         },
         "version": "1.0.0"
     },
-    "host": "localhost:4000",
+    "host": "https://bibliotheca-api-dev.fl0.io",
     "basePath": "/",
     "paths": {
         "/v1/booklists": {

@@ -16,7 +16,7 @@ import (
 
 func (a *app) serve(wg *sync.WaitGroup, logger *jsonlog.Logger) error {
 	srv := &http.Server{
-		Addr:         fmt.Sprintf(":%d", a.config.Server.Port),
+		Addr:         fmt.Sprintf(":%d", a.config.Port),
 		Handler:      a.handler.Routes(),
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  10 * time.Second,
@@ -48,7 +48,7 @@ func (a *app) serve(wg *sync.WaitGroup, logger *jsonlog.Logger) error {
 	// Start server and listen for incoming connections
 	logger.PrintInfo("starting server", map[string]string{
 		"addr": srv.Addr,
-		"env":  a.config.Server.Env,
+		"env":  a.config.Env,
 	})
 	err := srv.ListenAndServe()
 	if !errors.Is(err, http.ErrServerClosed) {
