@@ -81,9 +81,8 @@ func (h *Handler) Routes() http.Handler {
 	// router.HandlerFunc(http.MethodGet, "/debug/vars", app.basicAuth(expvar.Handler().ServeHTTP))
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", h.healthcheckHandler)
 
-	// Swagger routes
-	router.HandlerFunc(http.MethodGet, "/spec", h.handleSwaggerFile())
-	router.HandlerFunc(http.MethodGet, "/docs/*any", httpSwagger.Handler(httpSwagger.URL("/spec")))
+	// API documentation route
+	router.HandlerFunc(http.MethodGet, "/docs/*any", httpSwagger.WrapHandler)
 
 	return h.recoverPanic(h.enableCORS(h.rateLimit(h.authenticate(router))))
 }
