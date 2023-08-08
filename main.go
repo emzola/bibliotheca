@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/emzola/bibliotheca/config"
+	_ "github.com/emzola/bibliotheca/docs"
 	"github.com/emzola/bibliotheca/handler"
 	"github.com/emzola/bibliotheca/internal/jsonlog"
 	"github.com/emzola/bibliotheca/repository"
