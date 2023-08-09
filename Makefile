@@ -26,7 +26,7 @@ run/api:
 ## db/psql: connect to the database using psql
 .PHONY: db/psql
 db/psql:
-	@psql ${BIBLIOTHECA_DB_DSN}
+	@psql ${DSN}
 
 ## db/migrations/new name=$1: create a new database migration
 .PHONY: db/migrations/new
@@ -38,7 +38,7 @@ db/migrations/new:
 .PHONY: db/migrations/up
 db/migrations/up: confirm
 	@echo 'Running up migrations...'
-	@migrate -path ./migrations -database ${BIBLIOTHECA_DB_DSN} up
+	@migrate -path ./migrations -database ${DSN} up
 
 # ==================================================================================== #
 # QUALITY CONTROL

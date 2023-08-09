@@ -82,7 +82,7 @@ func (h *Handler) Routes() http.Handler {
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", h.healthcheckHandler)
 
 	// API documentation route
-	router.HandlerFunc(http.MethodGet, "/docs/*any", httpSwagger.WrapHandler)
+	router.HandlerFunc(http.MethodGet, "/api-docs/*any", httpSwagger.WrapHandler)
 
 	return h.recoverPanic(h.enableCORS(h.rateLimit(h.authenticate(router))))
 }
