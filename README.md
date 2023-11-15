@@ -80,7 +80,7 @@ Download a book by providing its unique identifier (`:id`).
 
 ## <a id="api-documentation"></a>API Documentation
 
-For detailed API documentation and request/response examples, refer to [API Documentation](https://bibliotheca-api-dev.fl0.io/api-docs).
+For detailed API documentation and request/response examples, refer to [API Documentation](https://bibliotheca-api-dev-xfnt.4.us-1.fl0.io/api-docs).
 
 
 ## <a id="license"></a>License
